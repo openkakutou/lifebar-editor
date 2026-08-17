@@ -3,7 +3,7 @@
 A read+write editor for a [OpenKakutou](https://github.com/openkakutou) (MUGEN/Ikemen GO-compatible) lifebar: the health bar, power bar, combo counter, and round display UI. It parses and serializes the lifebar `.def`-style format directly in this app, and uses the sibling [`sff`](https://github.com/openkakutou/sff) WebAssembly build to decode sprite sheets for assigning sprites to lifebar elements.
 
 <!-- vibe:begin:features -->
-This project is in early-stage development — no functionality yet, only the project scaffold exists so far.
+This project is in early-stage development. It now has a themed app shell, built on the shared OpenKakutou design system, with a light/dark-aware layout; no lifebar editing functionality yet.
 
 Planned:
 
