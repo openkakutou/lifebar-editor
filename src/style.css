@@ -56,3 +56,59 @@ body {
 .design-tokens-error p {
   margin: 0;
 }
+
+/*
+ * Lifebar file input (backlog item 002) — a single-file drop zone/picker,
+ * unlike character-editor's multi-slot accumulating input. Error text uses
+ * `--wuik-color-text`, not `--wuik-color-danger` — mirrors the org-wide
+ * convention (see `web-ui-kit`'s own
+ * .vibe/decisions/009-error-text-uses-text-token-not-danger.md); the
+ * invalid state still signals non-verbally via a danger-colored border.
+ */
+.lifebar-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-4);
+  padding: var(--wuik-space-4);
+}
+
+.lifebar-input__dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--wuik-space-2);
+  padding: var(--wuik-space-4);
+  border: 2px dashed var(--wuik-color-border);
+  border-radius: var(--wuik-space-2);
+}
+
+.lifebar-input__dropzone--dragging {
+  border-color: var(--wuik-color-accent);
+  background-color: var(--wuik-color-surface);
+}
+
+.lifebar-input__dropzone--loading {
+  opacity: 0.6;
+}
+
+.lifebar-input__label {
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.lifebar-input__hint {
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.lifebar-input__status {
+  min-height: 1.2em;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.lifebar-input__status--error {
+  padding-left: var(--wuik-space-2);
+  color: var(--wuik-color-text);
+  border-left: 3px solid var(--wuik-color-danger);
+}

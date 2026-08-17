@@ -3,11 +3,13 @@
 A read+write editor for a [OpenKakutou](https://github.com/openkakutou) (MUGEN/Ikemen GO-compatible) lifebar: the health bar, power bar, combo counter, and round display UI. It parses and serializes the lifebar `.def`-style format directly in this app, and uses the sibling [`sff`](https://github.com/openkakutou/sff) WebAssembly build to decode sprite sheets for assigning sprites to lifebar elements.
 
 <!-- vibe:begin:features -->
-This project is in early-stage development. It now has a themed app shell, built on the shared OpenKakutou design system, with a light/dark-aware layout; no lifebar editing functionality yet.
+This project is in early-stage development. Available now:
+
+- A themed app shell, built on the shared OpenKakutou design system, with a light/dark-aware layout.
+- Load a lifebar file to edit by selecting it or dragging it onto the app — MUGEN and Ikemen GO-specific files alike, with unrecognized Ikemen extensions preserved rather than dropped. A malformed file shows a clear error naming the exact line that failed to parse instead of crashing.
 
 Planned:
 
-- Parse and edit a lifebar's `.def`-style file, MUGEN and Ikemen GO compatible
 - Browse and assign sprites to lifebar elements via the `sff` WebAssembly build
 - Edit element position/layout for the life bar, power bar, combo counter, round display, and more
 - Save/export edits back to the lifebar file format
@@ -67,5 +69,6 @@ npm run lint
 <!-- vibe:end:usage -->
 
 <!-- vibe:begin:docs-index -->
-No additional documentation yet.
+- [docs/architecture.md](docs/architecture.md) — how the app is put together: the main modules, the lifebar data model, and how a file flows through them.
+- [docs/testing.md](docs/testing.md) — how the test suite is structured, including how the parser is tested and test-environment quirks worked around.
 <!-- vibe:end:docs-index -->

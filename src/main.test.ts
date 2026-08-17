@@ -1,9 +1,25 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  getLifebarDocument,
+  resetLifebarDocumentForTests,
+} from "./document/lifebar-document-store.ts";
 import { designTokensLoaded, renderApp } from "./main.ts";
+
+function fileFromText(name: string, text: string): File {
+  return new File([text], name, { type: "text/plain" });
+}
+
+function dispatchDrop(dropZone: Element, files: File[]): void {
+  const dataTransfer = { files } as unknown as DataTransfer;
+  const event = new Event("drop", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
+  dropZone.dispatchEvent(event);
+}
 
 describe("renderApp", () => {
   beforeEach(() => {
     document.title = "";
+    resetLifebarDocumentForTests();
   });
 
   it("mounts a wuik-app-shell root frame with a toolbar heading and version when design tokens are loaded", () => {
@@ -93,6 +109,32 @@ describe("renderApp", () => {
     renderApp(root, "0.1.0", { designTokensLoaded: () => false });
 
     expect(document.title).toBe("Lifebar Editor — v0.1.0");
+  });
+
+  it("mounts the lifebar file input into the shell's main content", () => {
+    const root = document.createElement("div");
+
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    expect(root.querySelector(".lifebar-input__dropzone")).not.toBeNull();
+  });
+
+  it("stores the loaded lifebar document in memory once a file parses successfully", async () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    const dropZone = root.querySelector(".lifebar-input__dropzone");
+    if (!dropZone) throw new Error("dropzone not found");
+    dispatchDrop(dropZone, [
+      fileFromText("fight.def", "[Info]\nname = Default\n"),
+    ]);
+
+    await vi.waitFor(() => {
+      expect(getLifebarDocument()).not.toBeNull();
+    });
+
+    expect(getLifebarDocument()?.fileName).toBe("fight.def");
+    expect(getLifebarDocument()?.document.sections).toHaveLength(1);
   });
 });
 

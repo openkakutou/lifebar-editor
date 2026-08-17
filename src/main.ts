@@ -1,6 +1,8 @@
 import "@openkakutou/web-ui-kit/tokens.css";
 import "@openkakutou/web-ui-kit";
 import "./style.css";
+import { setLifebarDocument } from "./document/lifebar-document-store.ts";
+import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
 import { appVersion } from "./version.ts";
 
 const APP_TITLE = "Lifebar Editor";
@@ -36,8 +38,11 @@ export interface RenderAppOptions {
 /**
  * Builds the app's root frame — a `web-ui-kit` `<wuik-app-shell>` with the
  * app title as a single `<h1>` and the version as separate secondary text
- * in the toolbar, plus an empty `<main>` landmark for future content
- * (backlog items 002+). The title and version are deliberately two
+ * in the toolbar, plus the lifebar file input (backlog item 002) as the
+ * main content. Once a file loads successfully, its parsed document is
+ * stored in the in-memory `LifebarEditorDocument`
+ * (src/document/lifebar-document-store.ts) — the form later editor screens
+ * (004+) read from. The title and version are deliberately two
  * elements, not one combined string, so assistive tech reads one
  * unambiguous heading instead of announcing the version as part of it —
  * see .vibe/decisions/001-web-ui-kit-scaffold-adoption-and-token-failure-detection.md.
@@ -80,7 +85,13 @@ export function renderApp(
   toolbar.append(title, versionText);
   shell.appendChild(toolbar);
 
-  shell.appendChild(document.createElement("main"));
+  const main = document.createElement("main");
+  renderLifebarFileInput(main, {
+    onLoaded: (lifebarDocument, fileName) => {
+      setLifebarDocument({ fileName, document: lifebarDocument });
+    },
+  });
+  shell.appendChild(main);
 
   root.appendChild(shell);
 }
