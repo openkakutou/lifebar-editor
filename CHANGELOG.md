@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-19
+
 ### Added
 
 - Users can now load a `.sff` sprite sheet and browse its sprites as thumbnails, grouped the same way the file organizes them, in preparation for assigning sprites to lifebar elements. A missing sprite sheet WASM build shows a clear setup message instead of a silent failure, and a corrupt or unreadable file shows a clear error naming the problem.
@@ -23,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Adopted the shared `web-ui-kit` design system as this app's root frame: a themed layout shell with the app title and version, styled entirely with design tokens instead of ad-hoc CSS. If the design system fails to load, a clear error message is shown instead of a broken or blank page.
 
-[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/openkakutou/lifebar-editor/releases/tag/v0.2.0
