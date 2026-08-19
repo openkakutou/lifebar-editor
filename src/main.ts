@@ -2,7 +2,9 @@ import "@openkakutou/web-ui-kit/tokens.css";
 import "@openkakutou/web-ui-kit";
 import "./style.css";
 import { setLifebarDocument } from "./document/lifebar-document-store.ts";
+import { setSffSpriteSheet } from "./document/sff-sprite-sheet-store.ts";
 import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
+import { renderSpriteSheetInput } from "./input/sprite-sheet-input-view.ts";
 import { appVersion } from "./version.ts";
 
 const APP_TITLE = "Lifebar Editor";
@@ -38,11 +40,13 @@ export interface RenderAppOptions {
 /**
  * Builds the app's root frame — a `web-ui-kit` `<wuik-app-shell>` with the
  * app title as a single `<h1>` and the version as separate secondary text
- * in the toolbar, plus the lifebar file input (backlog item 002) as the
- * main content. Once a file loads successfully, its parsed document is
- * stored in the in-memory `LifebarEditorDocument`
- * (src/document/lifebar-document-store.ts) — the form later editor screens
- * (004+) read from. The title and version are deliberately two
+ * in the toolbar, plus the lifebar file input (backlog item 002) and the
+ * sprite sheet input (backlog item 003) as the main content. Once a file
+ * loads successfully, its parsed document is stored in the in-memory
+ * `LifebarEditorDocument` (src/document/lifebar-document-store.ts) or
+ * `SffSpriteSheetDocument` (src/document/sff-sprite-sheet-store.ts) —
+ * the form later editor screens (004+) read from. The title and version
+ * are deliberately two
  * elements, not one combined string, so assistive tech reads one
  * unambiguous heading instead of announcing the version as part of it —
  * see .vibe/decisions/001-web-ui-kit-scaffold-adoption-and-token-failure-detection.md.
@@ -86,11 +90,23 @@ export function renderApp(
   shell.appendChild(toolbar);
 
   const main = document.createElement("main");
-  renderLifebarFileInput(main, {
+
+  const lifebarSection = document.createElement("div");
+  renderLifebarFileInput(lifebarSection, {
     onLoaded: (lifebarDocument, fileName) => {
       setLifebarDocument({ fileName, document: lifebarDocument });
     },
   });
+  main.appendChild(lifebarSection);
+
+  const spriteSheetSection = document.createElement("div");
+  renderSpriteSheetInput(spriteSheetSection, {
+    onLoaded: ({ fileName, sffBytes, spriteGroups }) => {
+      setSffSpriteSheet({ fileName, sffBytes, spriteGroups });
+    },
+  });
+  main.appendChild(spriteSheetSection);
+
   shell.appendChild(main);
 
   root.appendChild(shell);

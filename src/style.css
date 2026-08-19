@@ -112,3 +112,129 @@ body {
   color: var(--wuik-color-text);
   border-left: 3px solid var(--wuik-color-danger);
 }
+
+/*
+ * Sprite sheet input (backlog item 003) — same single-file drop zone/
+ * picker shape as .lifebar-input above, same error-text-uses-text-token
+ * convention.
+ */
+.sprite-sheet-input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-4);
+  padding: var(--wuik-space-4);
+}
+
+.sprite-sheet-input__dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--wuik-space-2);
+  padding: var(--wuik-space-4);
+  border: 2px dashed var(--wuik-color-border);
+  border-radius: var(--wuik-space-2);
+}
+
+.sprite-sheet-input__dropzone--dragging {
+  border-color: var(--wuik-color-accent);
+  background-color: var(--wuik-color-surface);
+}
+
+.sprite-sheet-input__dropzone--loading {
+  opacity: 0.6;
+}
+
+.sprite-sheet-input__label {
+  font-weight: var(--wuik-font-weight-medium);
+}
+
+.sprite-sheet-input__hint {
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.sprite-sheet-input__status {
+  min-height: 1.2em;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.sprite-sheet-input__status--error {
+  padding-left: var(--wuik-space-2);
+  color: var(--wuik-color-text);
+  border-left: 3px solid var(--wuik-color-danger);
+}
+
+/*
+ * Sprite browser (backlog item 003) — a collapsible group list, each
+ * expanded group showing a wrapping grid of uniform-size thumbnail cells
+ * (.vibe/decisions/003-sprite-browser-batches-thumbnails-per-group.md).
+ */
+.sprite-browser {
+  padding: var(--wuik-space-4);
+}
+
+.sprite-browser__group-toggle {
+  width: 100%;
+  text-align: left;
+  padding: var(--wuik-space-2) var(--wuik-space-3);
+  background: none;
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-2);
+  color: var(--wuik-color-text);
+  cursor: pointer;
+}
+
+.sprite-browser__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wuik-space-3);
+  padding: var(--wuik-space-3) 0;
+}
+
+.sprite-browser__thumb {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--wuik-space-1);
+  width: 88px;
+  min-height: 96px;
+  padding: var(--wuik-space-1);
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-1);
+}
+
+.sprite-browser__canvas {
+  image-rendering: pixelated;
+  max-width: 64px;
+  max-height: 64px;
+}
+
+.sprite-browser__skeleton {
+  width: 64px;
+  height: 64px;
+  background: var(--wuik-color-surface);
+  border-radius: var(--wuik-space-1);
+}
+
+.sprite-browser__thumb-label {
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+  text-align: center;
+}
+
+.sprite-browser__thumb-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text);
+  border: 1px solid var(--wuik-color-danger);
+  border-radius: var(--wuik-space-1);
+  text-align: center;
+  overflow: hidden;
+}

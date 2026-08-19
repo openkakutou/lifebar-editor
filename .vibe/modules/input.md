@@ -1,5 +1,5 @@
 # Module: input
-**Role:** The single-file lifebar input — reads the selected/dropped file as text, parses it via `lifebar`, and reports a typed success/read-error/parse-error result; also renders the file-picker + drag-and-drop UI. Wholesale-replaces the previous outcome on every new drop (unlike `character-editor`'s accumulating multi-slot input).
-**Files:** `src/input/lifebar-file-input.ts`, `src/input/lifebar-file-input-view.ts`
-**Exports:** `loadLifebarFromFile(file, options?): Promise<LifebarInputResult>`, `readFileAsText(file): Promise<string>`, `LifebarInputResult`, `LifebarFileInputOptions`, `renderLifebarFileInput(root, options): void`, `LifebarFileInputViewOptions`
-**Depends on:** `modules/lifebar.md`
+**Role:** Two independent single-file inputs, each wholesale-replacing its previous outcome on every new drop (unlike `character-editor`'s accumulating multi-slot input): the lifebar file input, and the sprite sheet input — reads the selected/dropped `.sff` file's bytes and loads it via `wasm`, distinguishing a read failure, the WASM module failing to start (setup-error), and the module reporting a malformed file (parse-error).
+**Files:** `src/input/lifebar-file-input.ts`, `src/input/lifebar-file-input-view.ts`, `src/input/sprite-sheet-input.ts`, `src/input/sprite-sheet-input-view.ts`
+**Exports:** `loadLifebarFromFile(file, options?): Promise<LifebarInputResult>`, `readFileAsText(file): Promise<string>`, `LifebarInputResult`, `LifebarFileInputOptions`, `renderLifebarFileInput(root, options): void`, `LifebarFileInputViewOptions`, `loadSpriteSheetFromFile(file, options?): Promise<SpriteSheetInputResult>`, `readFileAsBytes(file): Promise<Uint8Array>`, `SpriteSheetInputResult`, `SpriteSheetInputOptions`, `renderSpriteSheetInput(root, options): void`, `SpriteSheetInputViewOptions`
+**Depends on:** `modules/lifebar.md`, `modules/wasm.md`, `modules/viewer.md`

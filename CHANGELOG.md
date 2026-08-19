@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Users can now load a `.sff` sprite sheet and browse its sprites as thumbnails, grouped the same way the file organizes them, in preparation for assigning sprites to lifebar elements. A missing sprite sheet WASM build shows a clear setup message instead of a silent failure, and a corrupt or unreadable file shows a clear error naming the problem.
+
 ## [0.3.0] - 2026-08-18
 
 ### Added

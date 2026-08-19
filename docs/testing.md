@@ -21,30 +21,61 @@ output (including line numbers) for well-formed input, and exact
 line-numbered error messages for malformed input, rather than only
 asserting "it didn't throw."
 
+## The WASM bridge is tested against a real, downloaded build
+
+`src/wasm/bridge.test.ts` doesn't mock the `sff` WASM module — it fetches
+the real `wasm_exec.js`/`sff.wasm` from `public/wasm/` (via injected
+Node-`fs` reads, since there's no running dev server under jsdom) and
+decodes a real fixture file (`src/wasm/testdata/v1-basic.sff`, copied from
+`sff`'s own test data — 1 real sprite, real pixel dimensions asserted
+against). Run `npm run wasm:download -- <version>` before running the
+suite, or these tests fail on a missing file rather than silently skip.
+
 ## jsdom gaps worked around in tests
 
 The project's pinned `jsdom` version's `Blob` implementation is incomplete.
-`src/input/lifebar-file-input.ts` reads `File` objects via
-`FileReader#readAsText` instead of `Blob#text()`, which behaves identically
-under jsdom and in a real browser.
+`src/input/lifebar-file-input.ts` reads text via `FileReader#readAsText`,
+and `src/input/sprite-sheet-input.ts` reads bytes via
+`FileReader#readAsArrayBuffer` — neither uses `Blob#text()`/`#arrayBuffer()`,
+both of which behave identically under jsdom and in a real browser via
+`FileReader` instead.
 
 Native browser objects jsdom doesn't construct in a test-friendly way (a
 drop event's `dataTransfer`) are stubbed with `Object.defineProperty` in
 tests rather than built through jsdom's own `DataTransfer`.
 
+`jsdom` does not implement `HTMLCanvasElement.getContext("2d")` at all —
+`sprite-browser.ts`'s pixel-drawing effect (`drawPixels`) is injectable for
+exactly this reason, with a real default (`defaultDrawPixels`) verified
+only by the real-browser pass described below, never by the unit suite.
+
 ## Testable-by-construction patterns
 
-`loadLifebarFromFile`'s file-reading effect is injectable
-(`LifebarFileInputOptions.readFileText`), defaulting to the real
-`FileReader`-based implementation but overridable in tests — used to
-exercise the read-error path without an actual unreadable `File`.
+Every effect that differs between jsdom and a real browser is injected as
+a parameter with a real default: `loadLifebarFromFile`'s
+`readFileText`, `loadSpriteSheetFromFile`'s `readFileBytes` and
+`loadSpriteSheet` (the WASM call itself, letting a test simulate a
+WASM-startup failure without touching real fetch/WebAssembly APIs), and
+`renderSpriteBrowser`'s `resolveSpritePixels`/`drawPixels`.
+
+## Batch-decode-per-group is tested with a controllable (deferred) promise
+
+`sprite-browser.test.ts` asserts the skeleton-then-thumbnail sequence (not
+just the end state) by injecting a `resolveSpritePixels` stub backed by a
+manually-resolved promise: assertions run once with the batch still
+pending (labels + skeletons visible, no canvas yet), then again after
+resolving it. The "no re-decode on re-expand" guarantee is tested by
+counting calls to the same mock across collapse/re-expand clicks.
 
 ## Beyond the test suite: real-browser verification
 
-Passing tests are not treated as proof the file input works. It was
-additionally driven against a real headless Chromium (dev server +
-Playwright) during development — loading a well-formed file (including one
-with an Ikemen-only extension section) and confirming the success status,
-then loading a malformed file and confirming the error status names the
-right line, with no console errors either time. This isn't part of
-`npm test`; it's a manual verification step, not a CI gate.
+Passing tests are not treated as proof either input works. Both were
+additionally driven against a real headless Chrome (dev server + a
+scripted CDP session) during development, the sprite sheet input against
+the *real* downloaded WASM build (not a stub): loading a well-formed
+lifebar file (including one with an Ikemen-only extension section) and a
+real `.sff` fixture (confirming a correctly-decoded, correctly-sized
+thumbnail actually renders), then a malformed file for each input and,
+separately, a temporarily-removed `sff.wasm` to confirm the setup-error
+path — with no console errors in any case. This isn't part of `npm test`;
+it's a manual verification step, not a CI gate.

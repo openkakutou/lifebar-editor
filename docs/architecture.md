@@ -16,30 +16,54 @@ flowchart LR
     app --> document["document\n(src/document/)"]
     input --> lifebar["lifebar\n(src/lifebar/)"]
     input --> document
+    input --> wasm["wasm\n(src/wasm/)"]
+    input --> viewer["viewer\n(src/viewer/)"]
+    viewer --> wasm
 ```
 
 - **`app`** (`src/main.ts`, `src/version.ts`, `src/style.css`) — the entry
   point. Builds the root layout (the org's shared `@openkakutou/web-ui-kit`
-  app shell), mounts `input`'s view into it, and wires its load callback to
-  `document`'s store.
-- **`lifebar`** (`src/lifebar/`) — the format itself. `document.ts` defines
-  the data model: an ordered list of sections, each an ordered list of raw
-  `key = value` entries (with source line numbers), kept unevaluated rather
-  than typed per known key — see "Data model" below. `parse.ts` reads
-  `.def`-style text into that model, plus `sectionsNamed`/`entriesNamed`
-  case-insensitive lookup helpers.
-- **`input`** (`src/input/`) — the file input. `lifebar-file-input.ts` holds
-  the DOM-free logic: reads a single `File` as text and calls into
-  `lifebar`'s parser, returning a typed success/read-error/parse-error
-  result. `lifebar-file-input-view.ts` renders the file-picker + drag-and-
-  drop UI on top of that logic — a single-slot, wholesale-replace
-  interaction (unlike `character-editor`'s accumulating multi-slot input),
-  since this format is always exactly one file.
-- **`document`** (`src/document/`) — the in-memory representation of the
-  currently loaded lifebar (`lifebar-document-store.ts`): the parsed
-  document plus the file name it came from. A plain module-level get/set
-  store, the single place later editor screens (elements/sprite assignment,
-  save/export) will read from.
+  app shell), mounts both of `input`'s two views into it (the lifebar file
+  input and the sprite sheet input), and wires each one's load callback to
+  its own store in `document`.
+- **`lifebar`** (`src/lifebar/`) — the lifebar `.def`-style format itself.
+  `document.ts` defines the data model: an ordered list of sections, each
+  an ordered list of raw `key = value` entries (with source line numbers),
+  kept unevaluated rather than typed per known key — see "Data model"
+  below. `parse.ts` reads `.def`-style text into that model, plus
+  `sectionsNamed`/`entriesNamed` case-insensitive lookup helpers.
+- **`wasm`** (`src/wasm/`) — the bridge to the sibling `sff` library's
+  WebAssembly build, which decodes `.sff` sprite sheets. `types.ts` mirrors
+  `sff`'s own `Sprite`/`SpriteGroup` JSON contract; `bridge.ts` loads
+  `wasm_exec.js` and `sff.wasm` (downloaded via `scripts/download-wasm.mjs`,
+  `npm run wasm:download`, never committed) and exposes typed
+  `loadSpriteSheet`/`resolveSpritePixels` wrappers around the
+  `OpenKakutouSff` global — the same loading strategy
+  `character-viewer-web` already established for its own `character` WASM
+  dependency.
+- **`input`** (`src/input/`) — two independent single-file inputs, same
+  single-slot, wholesale-replace interaction model (never
+  `character-editor`'s accumulating multi-slot one), since each format is
+  always exactly one file:
+  - `lifebar-file-input.ts`/`-view.ts` — reads a lifebar file as text and
+    parses it via `lifebar`.
+  - `sprite-sheet-input.ts`/`-view.ts` — reads a `.sff` file's bytes and
+    loads it via `wasm`, distinguishing three failure causes (a read
+    failure, the WASM module itself failing to start, or the module
+    reporting a malformed file) rather than one generic error — see "Data
+    flow: loading a sprite sheet" below.
+- **`viewer`** (`src/viewer/sprite-browser.ts`) — renders a loaded sprite
+  sheet's groups as a collapsible list; expanding a group batch-decodes
+  every sprite it contains via `wasm.resolveSpritePixels` and shows each as
+  its own thumbnail — see "Data flow: loading a sprite sheet" below and
+  `.vibe/decisions/003-sprite-browser-batches-thumbnails-per-group.md`.
+- **`document`** (`src/document/`) — the in-memory representation of
+  whatever is currently loaded, one store per format:
+  `lifebar-document-store.ts` (the parsed lifebar document plus its file
+  name) and `sff-sprite-sheet-store.ts` (the file name, raw bytes, and
+  decoded sprite groups). Both are plain module-level get/set stores, the
+  place later editor screens (element/sprite assignment, save/export) will
+  read from.
 
 ## Data model
 
@@ -68,3 +92,42 @@ corpus evidence yet justifies the same tolerance here).
    `document`'s in-memory store. Loading a different file later repeats
    this from step 1 and fully replaces the previous document — there is no
    accumulation across multiple files.
+
+## Data flow: loading a sprite sheet
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant View as sprite-sheet-input-view.ts
+    participant Input as sprite-sheet-input.ts
+    participant Bridge as wasm/bridge.ts
+    participant Browser as viewer/sprite-browser.ts
+    participant Store as sff-sprite-sheet-store.ts
+
+    User->>View: pick/drop a .sff file
+    View->>Input: loadSpriteSheetFromFile(file)
+    Input->>Input: read bytes (FileReader)
+    alt read fails
+        Input-->>View: read-error
+    else
+        Input->>Bridge: loadSpriteSheet(bytes)
+        alt WASM module fails to start
+            Bridge-->>Input: throws
+            Input-->>View: setup-error (names the missing asset)
+        else module runs, reports a bad file
+            Bridge-->>Input: {ok: false, error}
+            Input-->>View: parse-error
+        else success
+            Bridge-->>Input: {ok: true, spriteGroups}
+            Input-->>View: success
+            View->>Browser: renderSpriteBrowser(spriteGroups, bytes)
+            View->>Store: setSffSpriteSheet(...)
+        end
+    end
+```
+
+Expanding a group in `Browser` triggers one further, separate step: a
+single batched `Bridge.resolveSpritePixels(bytes, requests, null)` call
+covering every sprite in that group (not one call per sprite), decoded at
+most once per group for the page's lifetime — see
+`.vibe/decisions/003-sprite-browser-batches-thumbnails-per-group.md`.

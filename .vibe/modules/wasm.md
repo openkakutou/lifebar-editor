@@ -1,0 +1,5 @@
+# Module: wasm
+**Role:** Bridge to the sibling `sff` library's WebAssembly build: loads `wasm_exec.js` + `sff.wasm` (memoized across calls) and exposes typed wrappers around the `OpenKakutouSff` global — `loadSpriteSheet` (metadata only) and `resolveSpritePixels` (batched pixel decode) — each returning a typed result instead of throwing for a WASM-reported error, but rejecting if bringing the module itself up fails (missing/not-yet-downloaded assets), so callers can tell the two failure causes apart.
+**Files:** `src/wasm/types.ts`, `src/wasm/bridge.ts`
+**Exports:** `Sprite`, `SpriteGroup`, `loadSpriteSheet(sffBytes, options?): Promise<SpriteSheetResult>`, `resolveSpritePixels(sffBytes, requests, overridePaletteBytes, options?): Promise<SpritePixelResult[]>`, `resetWasmBridgeForTests(): void`, `SpriteSheetResult`, `SpritePixelResult`, `WasmBridgeOptions`
+**Depends on:** (none — the WASM assets themselves, `public/wasm/sff.wasm` + `wasm_exec.js`, are downloaded via `modules/scripts.md`, not a source dependency)

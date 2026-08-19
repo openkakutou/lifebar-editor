@@ -29,3 +29,38 @@ Defined in: `src/document/lifebar-document-store.ts`
 Discriminated-union results instead of thrown exceptions. `LifebarParseResult` is the parser's own `{status: "success", document} | {status: "error", message}`. `LifebarInputResult` wraps it one layer up, adding the file-read step: `{status: "success", fileName, document} | {status: "read-error", message} | {status: "parse-error", message}`.
 
 Defined in: `src/lifebar/parse.ts`, `src/input/lifebar-file-input.ts`
+
+## Sprite / SpriteGroup
+Mirrors the `sff` WASM module's JSON contract field-for-field: sprite metadata only, never decoded pixel data.
+
+| Type | Field | Type | Notes |
+|---|---|---|---|
+| SpriteGroup | index | number | |
+| SpriteGroup | sprites | Sprite[] | In file order |
+| Sprite | group / image | number | Together identify the sprite within the sheet |
+| Sprite | width / height | number | Pixel dimensions |
+| Sprite | axisX / axisY | number | Pivot point offset from the top-left corner |
+| Sprite | palette | number | Reference to the palette this sprite is drawn with |
+
+Defined in: `src/wasm/types.ts`
+
+## SpriteSheetResult / SpritePixelResult
+Discriminated-union results from the WASM bridge. `SpriteSheetResult` is `{ok: true, spriteGroups} | {ok: false, error}` for a whole-sheet load. `SpritePixelResult` is `{ok: true, pixels, width, height} | {ok: false, error}`, one per requested sprite in a batched decode call.
+
+Defined in: `src/wasm/bridge.ts`
+
+## SpriteSheetInputResult
+Wraps `SpriteSheetResult` one layer up, adding the file-read step and distinguishing a WASM-startup failure from a WASM-reported parse error: `{status: "success", fileName, sffBytes, spriteGroups} | {status: "read-error", fileName, message} | {status: "setup-error", fileName, message} | {status: "parse-error", fileName, message}`.
+
+Defined in: `src/input/sprite-sheet-input.ts`
+
+## SffSpriteSheetDocument
+The in-memory representation of the currently loaded sprite sheet: its file name, raw bytes (needed for later on-demand pixel decodes when assigning sprites to elements), and decoded metadata.
+
+| Field | Type | Notes |
+|---|---|---|
+| fileName | string | |
+| sffBytes | Uint8Array | |
+| spriteGroups | SpriteGroup[] | |
+
+Defined in: `src/document/sff-sprite-sheet-store.ts`
