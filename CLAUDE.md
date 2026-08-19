@@ -18,7 +18,9 @@ English — all documentation, backlog items, code comments, and other generated
 
 Unlike `character` and `stage`, there is no dedicated `lifebar` Go library. This app implements its own lifebar `.def`-style parser/serializer directly in TypeScript (roadmap `.vibe/decisions/009`) — deliberately not shared with `lifebar-viewer-web`, which implements its own separate parser to the same decision. Target compatibility is MUGEN 1.0/1.1 and Ikemen GO, validated against real community lifebar files, not just the spec.
 
-Sprite sheets referenced by a lifebar (for the life bar, power bar, combo counter, round display, etc.) are decoded via the `sff` library's (github.com/openkakutou/sff) WebAssembly build, loaded client-side — no Go toolchain, no server, keeping this project a static site. `public/wasm/` holds the downloaded/built WASM artifact and stays gitignored — it is fetched, never committed.
+Sprite sheets referenced by a lifebar (for the life bar, power bar, combo counter, round display, etc.) are decoded via the `sff` library's (github.com/openkakutou/sff) WebAssembly build, loaded client-side — no Go toolchain, no server, keeping this project a static site. `public/wasm/` holds the downloaded/built WASM artifact and stays gitignored — it is fetched, never committed. Run `npm run wasm:download -- <version>` (e.g. `npm run wasm:download -- v0.2.0`) to fetch a specific `sff` version tag's release assets straight into `public/wasm/`.
+
+**The current pin lives in exactly one place: the `wasm:download -- vX.Y.Z` argument in `.github/workflows/deploy-pages.yml`.** CI must run that download step before `Test`/`Build` — the WASM bridge test suite loads `public/wasm/wasm_exec.js` directly and fails outright on a missing file rather than skipping. That is also the source of truth a `sff` release should update — see `roadmap`'s `.vibe/decisions/016-wasm-version-pinning-push-based-propagation.md` for the org-wide policy: exact pins, bumped by hand, no scheduled job. When bumping, also update the illustrative version number in this section and in `README.md`'s install instructions so they don't drift into stale examples.
 
 ## Architecture
 
