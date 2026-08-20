@@ -64,3 +64,8 @@ The in-memory representation of the currently loaded sprite sheet: its file name
 | spriteGroups | SpriteGroup[] | |
 
 Defined in: `src/document/sff-sprite-sheet-store.ts`
+
+## ParsedSpriteReference / SpriteReferenceStatus
+A sprite-reference Entry's value (a `.spr`-suffixed key's `"group, image"` pair), parsed then resolved against a loaded sheet. `ParsedSpriteReference` is the parse-only step: `{status: "unset"} | {status: "malformed", raw} | {status: "parsed", group, image}`. `SpriteReferenceStatus` adds the sheet lookup, the shape the elements editor actually renders from: `{kind: "no-sheet"} | {kind: "unset"} | {kind: "invalid", raw} | {kind: "valid", group, image}`. See `.vibe/decisions/004-spr-suffix-identifies-sprite-reference-entries.md`.
+
+Defined in: `src/editor/sprite-reference.ts`

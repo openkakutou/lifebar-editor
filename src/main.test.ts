@@ -3,6 +3,7 @@ import {
   getLifebarDocument,
   resetLifebarDocumentForTests,
 } from "./document/lifebar-document-store.ts";
+import { resetSffSpriteSheetForTests } from "./document/sff-sprite-sheet-store.ts";
 import { designTokensLoaded, renderApp } from "./main.ts";
 
 function fileFromText(name: string, text: string): File {
@@ -20,6 +21,7 @@ describe("renderApp", () => {
   beforeEach(() => {
     document.title = "";
     resetLifebarDocumentForTests();
+    resetSffSpriteSheetForTests();
   });
 
   it("mounts a wuik-app-shell root frame with a toolbar heading and version when design tokens are loaded", () => {
@@ -135,6 +137,34 @@ describe("renderApp", () => {
 
     expect(getLifebarDocument()?.fileName).toBe("fight.def");
     expect(getLifebarDocument()?.document.sections).toHaveLength(1);
+  });
+
+  it("renders the elements editor for the loaded lifebar document's sections", async () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    const dropZone = root.querySelector(".lifebar-input__dropzone");
+    if (!dropZone) throw new Error("dropzone not found");
+    dispatchDrop(dropZone, [
+      fileFromText("fight.def", "[Info]\nname = Default\n"),
+    ]);
+
+    await vi.waitFor(() => {
+      expect(
+        root.querySelector(".elements-editor__section-toggle"),
+      ).not.toBeNull();
+    });
+
+    expect(
+      root.querySelectorAll(".elements-editor__section-toggle"),
+    ).toHaveLength(1);
+  });
+
+  it("renders no elements editor before any lifebar file has loaded", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    expect(root.querySelector(".elements-editor")).toBeNull();
   });
 });
 

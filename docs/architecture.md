@@ -14,11 +14,14 @@ separate implementation of the same format.
 flowchart LR
     app["app\n(src/main.ts)"] --> input["input\n(src/input/)"]
     app --> document["document\n(src/document/)"]
+    app --> editor["editor\n(src/editor/)"]
     input --> lifebar["lifebar\n(src/lifebar/)"]
     input --> document
     input --> wasm["wasm\n(src/wasm/)"]
     input --> viewer["viewer\n(src/viewer/)"]
     viewer --> wasm
+    editor --> lifebar
+    editor --> wasm
 ```
 
 - **`app`** (`src/main.ts`, `src/version.ts`, `src/style.css`) — the entry
@@ -62,8 +65,23 @@ flowchart LR
   `lifebar-document-store.ts` (the parsed lifebar document plus its file
   name) and `sff-sprite-sheet-store.ts` (the file name, raw bytes, and
   decoded sprite groups). Both are plain module-level get/set stores, the
-  place later editor screens (element/sprite assignment, save/export) will
-  read from.
+  place `editor` and the future save/export screen read from.
+- **`editor`** (`src/editor/`) — the elements editor: lets the user select
+  any parsed lifebar section and edit its entries, assigning a sprite to
+  any entry that references one. `sprite-reference.ts` is pure logic (no
+  DOM): it identifies a sprite-reference entry by its `.spr` key suffix —
+  the real MUGEN/Ikemen GO fight.def convention — and resolves one against
+  a loaded sheet's sprite metadata into one of four states (`no-sheet`,
+  `unset`, `invalid`, `valid`); see
+  `.vibe/decisions/004-spr-suffix-identifies-sprite-reference-entries.md`.
+  `elements-editor.ts` renders a collapsible section list (mirroring
+  `viewer`'s own group-toggle pattern) and edits the given
+  `LifebarDocument` **in place** — no re-parse, no callback required to
+  persist a change, since `app` passes the same document-store object
+  reference down. `app` still passes an `onEntryChange` observer and owns
+  a `Set` of expanded section indices across re-renders, so re-rendering
+  after a sprite sheet loads (while a section is already open) doesn't
+  collapse the user's place — see "Data flow: editing an element" below.
 
 ## Data model
 
@@ -131,3 +149,25 @@ single batched `Bridge.resolveSpritePixels(bytes, requests, null)` call
 covering every sprite in that group (not one call per sprite), decoded at
 most once per group for the page's lifetime — see
 `.vibe/decisions/003-sprite-browser-batches-thumbnails-per-group.md`.
+
+## Data flow: editing an element
+
+1. `app` re-renders `editor` after either store changes (a lifebar file or
+   a sprite sheet finishes loading), passing the same `expandedSections`
+   `Set` instance each time so already-open sections stay open.
+2. For each section, `editor` flags its (possibly collapsed) header with a
+   badge if any `.spr` entry needs attention — an invalid value, or one
+   that can't be verified because no sheet is loaded yet — so neither state
+   AC 4/5 describe is ever hidden inside an unopened panel.
+3. Expanding a section builds its entry rows: a plain entry is a text input
+   committed on blur (a no-op if unchanged); a `.spr` entry with no sheet
+   loaded is read-only text plus one shared prompt per section (not one per
+   entry); a `.spr` entry with a sheet loaded is a `<select>` of every
+   sprite in it, its value set explicitly (never left to the browser's
+   default first-option selection) so an invalid reference always shows an
+   explicit "Invalid reference" placeholder plus an inline error, rather
+   than silently appearing to be some other, unrelated sprite.
+4. Choosing a real sprite (or committing a plain field) mutates the
+   `LifebarDocument` object in place — the same reference the `document`
+   store holds — and calls the `onEntryChange` observer; nothing is
+   re-parsed or re-fetched.

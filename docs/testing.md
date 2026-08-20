@@ -79,3 +79,20 @@ thumbnail actually renders), then a malformed file for each input and,
 separately, a temporarily-removed `sff.wasm` to confirm the setup-error
 path — with no console errors in any case. This isn't part of `npm test`;
 it's a manual verification step, not a CI gate.
+
+## jsdom cannot catch a `hidden`-attribute-vs-CSS conflict
+
+The elements editor's own real-browser pass (same manual-verification
+practice as above) caught a defect no jsdom test could: a collapsed
+section's entries stayed visibly rendered in a real browser even though
+its `hidden` DOM property was correctly `true` and every jsdom assertion
+against that property passed. An author CSS rule setting `display` on the
+same element silently overrides the `hidden` attribute's own
+`display: none` default (author styles beat the user-agent stylesheet at
+equal specificity) — jsdom does not apply CSS at all, so this class of bug
+is invisible to the unit suite regardless of how the `hidden` property
+itself is asserted. The fix is a `[hidden]`-qualified override rule (see
+`elements-editor__entries[hidden]` in `src/style.css`); the same
+unqualified-`display`-plus-`hidden` pattern was found to pre-date this in
+`sprite-browser.ts`/`.sprite-browser__grid` too, tracked separately as
+backlog item `012` rather than fixed as a side effect of unrelated work.

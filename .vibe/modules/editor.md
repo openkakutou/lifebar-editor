@@ -1,0 +1,5 @@
+# Module: editor
+**Role:** The elements editor (backlog item 004): lets the user select any parsed lifebar Section and edit its Entries in place, assigning a sprite to any Entry that references one (identified by a `.spr` key suffix, per `.vibe/decisions/004`) via a picker over an already-loaded sprite sheet's metadata. Sections render as collapsible panels, flagged on their own (possibly collapsed) header when a sprite reference needs attention, so an error/prompt state is never hidden inside an unopened panel.
+**Files:** `src/editor/sprite-reference.ts`, `src/editor/elements-editor.ts`
+**Exports:** `isSpriteReferenceKey(key): boolean`, `parseSpriteReference(value): ParsedSpriteReference`, `formatSpriteReference(group, image): string`, `findSprite(spriteGroups, group, image): Sprite | null`, `resolveSpriteReference(value, spriteGroups): SpriteReferenceStatus`, `renderElementsEditor(root, document, spriteGroups, options?): void`, `ElementsEditorOptions`
+**Depends on:** `modules/lifebar.md` (`LifebarDocument`/`LifebarSection` types), `modules/wasm.md` (`SpriteGroup`/`Sprite` types)

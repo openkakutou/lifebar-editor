@@ -238,3 +238,101 @@ body {
   text-align: center;
   overflow: hidden;
 }
+
+/*
+ * Elements editor (backlog item 004) — a collapsible section list, each
+ * expanded section showing its Entries as editable rows. Mirrors the
+ * sprite browser's own collapsible-group visual language above.
+ */
+.elements-editor {
+  padding: var(--wuik-space-4);
+}
+
+.elements-editor__section-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--wuik-space-2);
+  width: 100%;
+  text-align: left;
+  padding: var(--wuik-space-2) var(--wuik-space-3);
+  background: none;
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-2);
+  color: var(--wuik-color-text);
+  cursor: pointer;
+}
+
+.elements-editor__section-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--wuik-space-4);
+  height: var(--wuik-space-4);
+  padding: 0 var(--wuik-space-1);
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-bg);
+  background: var(--wuik-color-danger);
+  border-radius: 999px;
+}
+
+.elements-editor__entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-2);
+  padding: var(--wuik-space-3) 0 var(--wuik-space-3) var(--wuik-space-3);
+}
+
+/*
+ * An author `display` rule on the same element otherwise defeats the
+ * `hidden` attribute's own UA-stylesheet `display: none` (author styles
+ * win over UA styles at equal specificity) -- this restores it, at higher
+ * specificity than the plain class rule above, so a collapsed section's
+ * entries are actually hidden, not just marked `hidden` in the DOM.
+ */
+.elements-editor__entries[hidden] {
+  display: none;
+}
+
+.elements-editor__entry {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--wuik-space-2);
+}
+
+.elements-editor__entry-key {
+  min-width: 10ch;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.elements-editor__entry-input,
+.elements-editor__sprite-select {
+  flex: 1 1 auto;
+  min-width: 12ch;
+  padding: var(--wuik-space-1) var(--wuik-space-2);
+  color: var(--wuik-color-text);
+  background: var(--wuik-color-bg);
+  border: 1px solid var(--wuik-color-border);
+  border-radius: var(--wuik-space-1);
+}
+
+.elements-editor__entry-readonly {
+  color: var(--wuik-color-text-secondary);
+}
+
+.elements-editor__sprite-prompt {
+  width: 100%;
+  margin: 0;
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-text-secondary);
+}
+
+.elements-editor__sprite-error {
+  font-size: var(--wuik-font-size-sm);
+  color: var(--wuik-color-danger);
+}
+
+.elements-editor__empty {
+  color: var(--wuik-color-text-secondary);
+}

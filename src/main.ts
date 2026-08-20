@@ -1,8 +1,15 @@
 import "@openkakutou/web-ui-kit/tokens.css";
 import "@openkakutou/web-ui-kit";
 import "./style.css";
-import { setLifebarDocument } from "./document/lifebar-document-store.ts";
-import { setSffSpriteSheet } from "./document/sff-sprite-sheet-store.ts";
+import {
+  getLifebarDocument,
+  setLifebarDocument,
+} from "./document/lifebar-document-store.ts";
+import {
+  getSffSpriteSheet,
+  setSffSpriteSheet,
+} from "./document/sff-sprite-sheet-store.ts";
+import { renderElementsEditor } from "./editor/elements-editor.ts";
 import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
 import { renderSpriteSheetInput } from "./input/sprite-sheet-input-view.ts";
 import { appVersion } from "./version.ts";
@@ -91,10 +98,25 @@ export function renderApp(
 
   const main = document.createElement("main");
 
+  const elementsSection = document.createElement("div");
+  // Persisted across re-renders (not recreated per call) so expanding a
+  // section, then loading a sprite sheet, doesn't collapse it again --
+  // see elements-editor.ts's own ElementsEditorOptions.expandedSections.
+  const expandedElementSections = new Set<number>();
+  const refreshElementsEditor = (): void => {
+    renderElementsEditor(
+      elementsSection,
+      getLifebarDocument()?.document ?? null,
+      getSffSpriteSheet()?.spriteGroups ?? null,
+      { expandedSections: expandedElementSections },
+    );
+  };
+
   const lifebarSection = document.createElement("div");
   renderLifebarFileInput(lifebarSection, {
     onLoaded: (lifebarDocument, fileName) => {
       setLifebarDocument({ fileName, document: lifebarDocument });
+      refreshElementsEditor();
     },
   });
   main.appendChild(lifebarSection);
@@ -103,9 +125,12 @@ export function renderApp(
   renderSpriteSheetInput(spriteSheetSection, {
     onLoaded: ({ fileName, sffBytes, spriteGroups }) => {
       setSffSpriteSheet({ fileName, sffBytes, spriteGroups });
+      refreshElementsEditor();
     },
   });
   main.appendChild(spriteSheetSection);
+
+  main.appendChild(elementsSection);
 
   shell.appendChild(main);
 
