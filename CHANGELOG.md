@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-20
+
 ### Added
 
 - Users can now select any element of a loaded lifebar (life bar, power bar, combo counter, round display, and so on) and edit its properties directly, and assign a sprite to any property that references one by picking from the loaded sprite sheet. An element needing a sprite sheet that isn't loaded yet, or referencing a sprite the loaded sheet doesn't actually have, is flagged clearly — even while collapsed — instead of failing silently or corrupting the file.
@@ -29,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Adopted the shared `web-ui-kit` design system as this app's root frame: a themed layout shell with the app title and version, styled entirely with design tokens instead of ad-hoc CSS. If the design system fails to load, a clear error message is shown instead of a broken or blank page.
 
-[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/openkakutou/lifebar-editor/releases/tag/v0.2.0
