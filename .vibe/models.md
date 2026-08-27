@@ -69,3 +69,14 @@ Defined in: `src/document/sff-sprite-sheet-store.ts`
 A sprite-reference Entry's value (a `.spr`-suffixed key's `"group, image"` pair), parsed then resolved against a loaded sheet. `ParsedSpriteReference` is the parse-only step: `{status: "unset"} | {status: "malformed", raw} | {status: "parsed", group, image}`. `SpriteReferenceStatus` adds the sheet lookup, the shape the elements editor actually renders from: `{kind: "no-sheet"} | {kind: "unset"} | {kind: "invalid", raw} | {kind: "valid", group, image}`. See `.vibe/decisions/004-spr-suffix-identifies-sprite-reference-entries.md`.
 
 Defined in: `src/editor/sprite-reference.ts`
+
+## ExportProblem
+One reason a `LifebarDocument` isn't safe to export as-is, found by `findExportProblems`. `blocking` (a `;` in a value — would silently corrupt on reload) is not overridable; `warning` (an unresolved `.spr` reference) is, via an "Export anyway" action. See `.vibe/decisions/005-save-export-round-trip-and-validation-gate.md`.
+
+| Field | Type | Notes |
+|---|---|---|
+| sectionName | string | Which section the offending entry is in |
+| message | string | Human-readable, names the entry's key |
+| severity | "blocking" \| "warning" | Blocking: not overridable. Warning: overridable via "Export anyway" |
+
+Defined in: `src/editor/export-validation.ts`

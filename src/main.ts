@@ -10,6 +10,7 @@ import {
   setSffSpriteSheet,
 } from "./document/sff-sprite-sheet-store.ts";
 import { renderElementsEditor } from "./editor/elements-editor.ts";
+import { renderSaveExport } from "./editor/save-export.ts";
 import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
 import { renderSpriteSheetInput } from "./input/sprite-sheet-input-view.ts";
 import { appVersion } from "./version.ts";
@@ -131,6 +132,10 @@ export function renderApp(
   main.appendChild(spriteSheetSection);
 
   main.appendChild(elementsSection);
+
+  const saveExportSection = document.createElement("div");
+  renderSaveExport(saveExportSection);
+  main.appendChild(saveExportSection);
 
   shell.appendChild(main);
 

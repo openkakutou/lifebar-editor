@@ -166,6 +166,13 @@ describe("renderApp", () => {
 
     expect(root.querySelector(".elements-editor")).toBeNull();
   });
+
+  it("mounts the save/export action into the shell's main content", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    expect(root.querySelector('[data-action="save-export"]')).not.toBeNull();
+  });
 });
 
 describe("designTokensLoaded", () => {

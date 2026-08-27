@@ -80,6 +80,17 @@ separately, a temporarily-removed `sff.wasm` to confirm the setup-error
 path — with no console errors in any case. This isn't part of `npm test`;
 it's a manual verification step, not a CI gate.
 
+Save/export (backlog item 005) got the same treatment: a real headless
+Chrome session loaded a lifebar file and the real `v1-basic.sff` fixture,
+then drove all three export outcomes and inspected the *actual downloaded
+file content*, not just that a click fired — a sprite reference with no
+sheet loaded produced the warning + "Export anyway" path (download
+confirmed byte-for-byte against the expected re-serialized text once
+triggered), loading the real sheet and re-exporting resolved the
+reference and downloaded immediately with no warning, and editing a value
+to contain a `;` produced the blocking error with no "Export anyway"
+offered and no download attempt at all.
+
 ## jsdom cannot catch a `hidden`-attribute-vs-CSS conflict
 
 The elements editor's own real-browser pass (same manual-verification

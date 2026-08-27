@@ -9,10 +9,10 @@ This project is in early-stage development. Available now:
 - Load a lifebar file to edit by selecting it or dragging it onto the app — MUGEN and Ikemen GO-specific files alike, with unrecognized Ikemen extensions preserved rather than dropped. A malformed file shows a clear error naming the exact line that failed to parse instead of crashing.
 - Load a `.sff` sprite sheet and browse its sprites as thumbnails, grouped the way the file organizes them, in preparation for assigning them to lifebar elements. A missing sprite sheet WASM build or a corrupt file shows a clear, specific error instead of failing silently.
 - Select any element of the loaded lifebar (life bar, power bar, combo counter, round display, and more) and edit its properties, and assign a sprite to any property that references one by picking it from the loaded sprite sheet. An element that needs a sprite sheet not loaded yet, or that references a sprite the loaded sheet doesn't actually have, is clearly flagged — even before opening it — instead of failing silently or corrupting the file.
+- Save/export the edited lifebar as a downloadable file. If a sprite assignment still needs attention, exporting shows a clear warning naming the affected element instead of leaving in-progress work stuck with no way to save it — an explicit "Export anyway" choice is offered. A value that this file format simply can't store safely blocks the export outright until it's fixed, so a file is never silently exported broken.
 
 Planned:
 
-- Save/export edits back to the lifebar file format
 - A new-lifebar wizard: create a lifebar from scratch or a starter template
 <!-- vibe:end:features -->
 

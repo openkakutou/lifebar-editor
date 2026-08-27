@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Users can now save/export their edited lifebar as a downloadable `.def`-style file, preserving every element and sprite assignment. If a sprite reference still needs attention (unresolved, or no sprite sheet loaded) the export shows a clear warning naming the affected element, with an explicit "Export anyway" option instead of losing in-progress work; a value that can't safely be stored in this file format (containing a `;`) blocks the export outright until fixed, so a file is never silently exported broken.
+
 ## [0.5.0] - 2026-08-20
 
 ### Added

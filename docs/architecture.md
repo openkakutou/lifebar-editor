@@ -24,6 +24,10 @@ flowchart LR
     editor --> wasm
 ```
 
+(`editor`'s save/export screen is what exercises the `editor --> lifebar`
+edge in the write direction — `lifebar.serializeLifebar`, not just
+`parseLifebar`.)
+
 - **`app`** (`src/main.ts`, `src/version.ts`, `src/style.css`) — the entry
   point. Builds the root layout (the org's shared `@openkakutou/web-ui-kit`
   app shell), mounts both of `input`'s two views into it (the lifebar file
@@ -35,6 +39,10 @@ flowchart LR
   kept unevaluated rather than typed per known key — see "Data model"
   below. `parse.ts` reads `.def`-style text into that model, plus
   `sectionsNamed`/`entriesNamed` case-insensitive lookup helpers.
+  `serialize.ts` is the write-side counterpart: it turns a `LifebarDocument`
+  back into `.def`-style text, walking sections/entries strictly in array
+  order (never grouped or deduplicated) so a repeated section name or key
+  round-trips as separate blocks/lines, not merged into one.
 - **`wasm`** (`src/wasm/`) — the bridge to the sibling `sff` library's
   WebAssembly build, which decodes `.sff` sprite sheets. `types.ts` mirrors
   `sff`'s own `Sprite`/`SpriteGroup` JSON contract; `bridge.ts` loads
@@ -65,7 +73,7 @@ flowchart LR
   `lifebar-document-store.ts` (the parsed lifebar document plus its file
   name) and `sff-sprite-sheet-store.ts` (the file name, raw bytes, and
   decoded sprite groups). Both are plain module-level get/set stores, the
-  place `editor` and the future save/export screen read from.
+  place `editor` (including its save/export screen) reads from.
 - **`editor`** (`src/editor/`) — the elements editor: lets the user select
   any parsed lifebar section and edit its entries, assigning a sprite to
   any entry that references one. `sprite-reference.ts` is pure logic (no
@@ -82,6 +90,11 @@ flowchart LR
   a `Set` of expanded section indices across re-renders, so re-rendering
   after a sprite sheet loads (while a section is already open) doesn't
   collapse the user's place — see "Data flow: editing an element" below.
+  `export-validation.ts` and `save-export.ts` are the save/export screen:
+  the former finds every reason the document isn't safe to export yet, the
+  latter wires a button to `lifebar.serializeLifebar` and a browser
+  download, gated by that check — see "Data flow: saving/exporting a
+  lifebar" below.
 
 ## Data model
 
@@ -171,3 +184,39 @@ most once per group for the page's lifetime — see
    `LifebarDocument` object in place — the same reference the `document`
    store holds — and calls the `onEntryChange` observer; nothing is
    re-parsed or re-fetched.
+
+## Data flow: saving/exporting a lifebar
+
+`export-validation.ts` (pure logic, no DOM) walks the whole document and
+reports every reason it isn't safe to export as-is, one problem per
+offending entry, at one of two severities — see
+`.vibe/decisions/005-save-export-round-trip-and-validation-gate.md`:
+
+- **blocking** — an entry value containing a literal `;`. `parse.ts`'s own
+  `stripComment` truncates a raw line at the first `;` unconditionally (the
+  format has no escape syntax for it), so exporting this as-is would
+  silently lose data on the next load. Not overridable.
+- **warning** — a `.spr` entry that's invalid, or unverifiable because no
+  sprite sheet is loaded (reusing `sprite-reference.ts`'s
+  `resolveSpriteReference`). The exported text itself stays intact either
+  way, so this one is safe to override.
+
+`save-export.ts` reads the current lifebar document fresh on every click
+(never a stale snapshot, same "read from the store at the moment it's
+needed" convention `editor` already follows) and drives the gate:
+
+```mermaid
+flowchart TD
+    click[Save / Export clicked] --> check{findExportProblems}
+    check -- blocking problem --> blockMsg[Show error naming the entry\nNo download]
+    check -- only warnings --> warnMsg["Show warning naming the entry\n+ Export anyway button"]
+    check -- none --> download[serializeLifebar -> triggerDownload]
+    warnMsg -->|Export anyway clicked| download
+    download --> success[Saved status]
+```
+
+A successful export triggers a browser download (`Blob` + object URL + a
+programmatically-clicked `<a download>`, immediately revoked after) of
+`lifebar.serializeLifebar`'s output, named after the originally loaded
+file — never a fixed or generic name, so reloading what was just exported
+stays a one-step round trip.
