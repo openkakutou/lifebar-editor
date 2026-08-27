@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-27
+
 ### Added
 
 - Users can now save/export their edited lifebar as a downloadable `.def`-style file, preserving every element and sprite assignment. If a sprite reference still needs attention (unresolved, or no sprite sheet loaded) the export shows a clear warning naming the affected element, with an explicit "Export anyway" option instead of losing in-progress work; a value that can't safely be stored in this file format (containing a `;`) blocks the export outright until fixed, so a file is never silently exported broken.
@@ -35,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Adopted the shared `web-ui-kit` design system as this app's root frame: a themed layout shell with the app title and version, styled entirely with design tokens instead of ad-hoc CSS. If the design system fails to load, a clear error message is shown instead of a broken or blank page.
 
-[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.2.0...v0.3.0
