@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-31
+
 ### Added
 
 - Users can now start a brand-new lifebar without loading a file first: either blank, or from a bundled starter template with a life bar and power bar already set up. Starting a new lifebar while the current one has unsaved edits asks for confirmation first, naming what would be lost.
@@ -41,7 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Adopted the shared `web-ui-kit` design system as this app's root frame: a themed layout shell with the app title and version, styled entirely with design tokens instead of ad-hoc CSS. If the design system fails to load, a clear error message is shown instead of a broken or blank page.
 
-[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.3.0...v0.4.0
