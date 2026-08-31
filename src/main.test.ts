@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getLifebarDocument,
+  hasUnsavedLifebarChanges,
   resetLifebarDocumentForTests,
 } from "./document/lifebar-document-store.ts";
 import { resetSffSpriteSheetForTests } from "./document/sff-sprite-sheet-store.ts";
@@ -194,5 +195,77 @@ describe("designTokensLoaded", () => {
     el.style.setProperty("--wuik-color-bg", "   ");
 
     expect(designTokensLoaded(el)).toBe(false);
+  });
+});
+
+function blankLifebarButton(root: HTMLElement): HTMLElement {
+  const button = root.querySelector<HTMLElement>(
+    '[data-action="new-lifebar-blank"]',
+  );
+  if (!button) throw new Error("blank lifebar button not found");
+  return button;
+}
+
+describe("renderApp — New Lifebar Wizard integration", () => {
+  beforeEach(() => {
+    resetLifebarDocumentForTests();
+    resetSffSpriteSheetForTests();
+  });
+
+  it("renders the New Lifebar Wizard alongside the file input from the start", () => {
+    const root = document.createElement("div");
+
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    expect(blankLifebarButton(root)).not.toBeNull();
+    expect(root.querySelector('input[type="file"]')).not.toBeNull();
+  });
+
+  it("creating a blank lifebar stores it and mounts the elements editor's empty state, with no file ever loaded", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    blankLifebarButton(root).click();
+
+    expect(getLifebarDocument()?.document.sections).toEqual([]);
+    expect(getLifebarDocument()?.fileName).toBe("fight.def");
+  });
+
+  it("moves focus into the first section toggle after creating from a template", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    root
+      .querySelector<HTMLElement>('[data-action="new-lifebar-template"]')
+      ?.click();
+
+    expect(
+      document.activeElement?.className.includes(
+        "elements-editor__section-toggle",
+      ),
+    ).toBe(true);
+    root.remove();
+  });
+
+  it("prompts before discarding an edited lifebar, and does nothing when declined", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    root
+      .querySelector<HTMLElement>('[data-action="new-lifebar-template"]')
+      ?.click();
+    const doc = getLifebarDocument();
+    if (!doc) throw new Error("expected a document after creation");
+    doc.document.sections[0].entries[0].value = "edited";
+    expect(hasUnsavedLifebarChanges()).toBe(true);
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    blankLifebarButton(root).click();
+
+    expect(confirmSpy).toHaveBeenCalledOnce();
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      "edited",
+    );
+    confirmSpy.mockRestore();
   });
 });

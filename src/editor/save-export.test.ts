@@ -63,6 +63,42 @@ describe("renderSaveExport", () => {
     );
   });
 
+  it("marks the document saved (clearing the unsaved-changes flag) on a successful export", () => {
+    const root = document.createElement("div");
+    const markLifebarDocumentSaved = vi.fn();
+
+    renderSaveExport(root, {
+      getLifebarDocument: () => lifebarDocument(),
+      getSffSpriteSheet: () => null,
+      findExportProblems: () => [],
+      triggerDownload: vi.fn(),
+      markLifebarDocumentSaved,
+    });
+
+    click(root, '[data-action="save-export"]');
+
+    expect(markLifebarDocumentSaved).toHaveBeenCalled();
+  });
+
+  it("does not mark the document saved when a blocking problem stops the export", () => {
+    const root = document.createElement("div");
+    const markLifebarDocumentSaved = vi.fn();
+
+    renderSaveExport(root, {
+      getLifebarDocument: () => lifebarDocument(),
+      getSffSpriteSheet: () => null,
+      findExportProblems: () => [
+        { sectionName: "Info", message: "broken", severity: "blocking" },
+      ],
+      triggerDownload: vi.fn(),
+      markLifebarDocumentSaved,
+    });
+
+    click(root, '[data-action="save-export"]');
+
+    expect(markLifebarDocumentSaved).not.toHaveBeenCalled();
+  });
+
   it("does nothing when clicked with no lifebar loaded", () => {
     const root = document.createElement("div");
     const serializeLifebar = vi.fn();

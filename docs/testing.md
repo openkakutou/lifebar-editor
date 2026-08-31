@@ -107,3 +107,27 @@ itself is asserted. The fix is a `[hidden]`-qualified override rule (see
 unqualified-`display`-plus-`hidden` pattern was found to pre-date this in
 `sprite-browser.ts`/`.sprite-browser__grid` too, tracked separately as
 backlog item `012` rather than fixed as a side effect of unrelated work.
+
+## New Lifebar Wizard (backlog item 006)
+
+`lifebar-document-store.test.ts`'s snapshot-diff tests mutate the same
+document object reference `setLifebarDocument` was given (never a
+replacement object) to assert `hasUnsavedLifebarChanges` reacts to a real
+in-place edit the same way `elements-editor.ts` actually produces one —
+asserting against a *replaced* object would test a case that can't happen
+in practice. `new-lifebar-wizard.test.ts` injects both
+`hasUnsavedChanges`/`confirmDiscard` to test the discard-guard's three
+outcomes (no prompt when clean, confirmed discard, declined discard)
+without a real `window.confirm` dialog; `main.test.ts`'s own integration
+tests then verify the *real* store and the *real* `window.confirm` (spied,
+not replaced) actually wire together end to end.
+
+Real-browser verification (Playwright) drove the full flow against a live
+dev server: creating from the bundled template, confirming focus lands on
+the first section's toggle button (not just asserted via `document.activeElement`
+in jsdom), confirming a `.spr` entry left "unset" by the template renders
+its established not-yet-assigned state rather than an error, editing a
+field then triggering "Blank Lifebar" and observing the real native
+`confirm()` dialog fire with the exact expected message, declining it
+(document unchanged) and then accepting it on a second attempt (document
+replaced) — zero console errors, no defects found.

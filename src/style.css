@@ -336,3 +336,21 @@ body {
 .elements-editor__empty {
   color: var(--wuik-color-text-secondary);
 }
+
+/*
+ * New Lifebar Wizard (backlog item 006) — an alternative entry point to
+ * the file input, own heading/section so "load" and "create new" read as
+ * distinct actions rather than one blended list.
+ */
+.new-lifebar-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-2);
+  padding: var(--wuik-space-4);
+}
+
+.new-lifebar-wizard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wuik-space-2);
+}

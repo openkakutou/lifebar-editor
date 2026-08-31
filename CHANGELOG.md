@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Users can now start a brand-new lifebar without loading a file first: either blank, or from a bundled starter template with a life bar and power bar already set up. Starting a new lifebar while the current one has unsaved edits asks for confirmation first, naming what would be lost.
+
 ## [0.6.0] - 2026-08-27
 
 ### Added

@@ -15,6 +15,7 @@ flowchart LR
     app["app\n(src/main.ts)"] --> input["input\n(src/input/)"]
     app --> document["document\n(src/document/)"]
     app --> editor["editor\n(src/editor/)"]
+    app --> wizard["wizard\n(src/wizard/)"]
     input --> lifebar["lifebar\n(src/lifebar/)"]
     input --> document
     input --> wasm["wasm\n(src/wasm/)"]
@@ -22,6 +23,8 @@ flowchart LR
     viewer --> wasm
     editor --> lifebar
     editor --> wasm
+    editor --> document
+    wizard --> document
 ```
 
 (`editor`'s save/export screen is what exercises the `editor --> lifebar`
@@ -95,6 +98,19 @@ edge in the write direction — `lifebar.serializeLifebar`, not just
   latter wires a button to `lifebar.serializeLifebar` and a browser
   download, gated by that check — see "Data flow: saving/exporting a
   lifebar" below.
+- **`wizard`** (`src/wizard/`) — the New Lifebar Wizard (item 006): an
+  alternative entry point to `input`'s file-based load. `new-lifebar-defaults.ts`
+  is pure logic (no DOM): `createBlankLifebar()` returns a document with no
+  sections at all (this format enforces no minimum), and `LIFEBAR_TEMPLATES`
+  builds a starter document with a life bar and power bar section, their
+  `.spr` entries left at this app's own established "unset" value (an empty
+  string) rather than a fabricated reference. `new-lifebar-wizard.ts` is the
+  DOM layer: a "Blank Lifebar" button plus one per template, each guarded by
+  `document`'s own `hasUnsavedLifebarChanges()` — if the currently loaded
+  lifebar has edits, a native `confirm()` naming the consequence must be
+  accepted before the new document replaces it. See
+  `.vibe/decisions/006-new-lifebar-wizard-defaults-and-unsaved-changes-guard.md`
+  and "Data flow: creating a new lifebar" below.
 
 ## Data model
 
@@ -219,4 +235,33 @@ A successful export triggers a browser download (`Blob` + object URL + a
 programmatically-clicked `<a download>`, immediately revoked after) of
 `lifebar.serializeLifebar`'s output, named after the originally loaded
 file — never a fixed or generic name, so reloading what was just exported
-stays a one-step round trip.
+stays a one-step round trip — then calls `document`'s
+`markLifebarDocumentSaved()`, so the New Lifebar Wizard's discard guard
+(below) reports clean again without needing a reload.
+
+## Data flow: creating a new lifebar
+
+1. `document.setLifebarDocument` snapshots the newly-set document's own
+   JSON (`JSON.stringify`) as its "last known clean" state, whether that
+   set came from a real file load, a wizard creation, or (via
+   `markLifebarDocumentSaved`) a successful export.
+2. `editor`'s `elements-editor.ts` mutates the loaded document **in
+   place** (see "Data flow: editing an element" above) — the store's own
+   object reference never changes on an edit, only its contents do.
+   `hasUnsavedLifebarChanges()` re-serializes that same live object on
+   demand and compares it against the snapshot: any real value difference
+   reports dirty, and reverting a field back to its original value reports
+   clean again, for free — no edit-count flag to keep in sync.
+3. Clicking "Blank Lifebar" or a template button in `wizard` checks
+   `hasUnsavedLifebarChanges()` first. If dirty, a native `confirm()`
+   naming the consequence ("Starting a new lifebar will discard them.")
+   must be accepted before proceeding — declining leaves the current
+   document completely untouched.
+4. Once confirmed (or nothing was at risk), `wizard` builds a fresh
+   document (`createBlankLifebar()` or a template's `build()`) and calls
+   `onCreated`, which `app` wires straight into `setLifebarDocument` plus a
+   re-render of `editor`. `app` also moves focus into the first rendered
+   section's toggle button — the wizard commits with no second confirm/
+   preview screen, so this is the only positive confirmation a keyboard/
+   screen-reader user gets that creation actually landed (a no-op for a
+   blank lifebar, which has no section yet to focus).

@@ -2,6 +2,7 @@ import "@openkakutou/web-ui-kit/tokens.css";
 import "@openkakutou/web-ui-kit";
 import "./style.css";
 import {
+  type LifebarEditorDocument,
   getLifebarDocument,
   setLifebarDocument,
 } from "./document/lifebar-document-store.ts";
@@ -14,6 +15,7 @@ import { renderSaveExport } from "./editor/save-export.ts";
 import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
 import { renderSpriteSheetInput } from "./input/sprite-sheet-input-view.ts";
 import { appVersion } from "./version.ts";
+import { renderNewLifebarWizard } from "./wizard/new-lifebar-wizard.ts";
 
 const APP_TITLE = "Lifebar Editor";
 
@@ -121,6 +123,24 @@ export function renderApp(
     },
   });
   main.appendChild(lifebarSection);
+
+  const newLifebarWizardSection = document.createElement("div");
+  renderNewLifebarWizard(newLifebarWizardSection, {
+    onCreated: (doc: LifebarEditorDocument) => {
+      setLifebarDocument(doc);
+      refreshElementsEditor();
+      // The wizard commits immediately, with no second confirm/preview
+      // screen, so moving focus into the newly mounted elements editor is
+      // the only positive confirmation a keyboard/screen-reader user gets
+      // that creation actually landed — same reasoning as `stage-editor`'s
+      // own New Stage Wizard (.vibe/decisions/006). A no-op for a blank
+      // lifebar, which has no section to focus yet.
+      elementsSection
+        .querySelector<HTMLElement>(".elements-editor__section-toggle")
+        ?.focus();
+    },
+  });
+  main.appendChild(newLifebarWizardSection);
 
   const spriteSheetSection = document.createElement("div");
   renderSpriteSheetInput(spriteSheetSection, {

@@ -1,0 +1,20 @@
+---
+date: 2026-08-31
+status: accepted
+---
+# New Lifebar Wizard: snapshot-diff dirty tracking, unset sprite refs in the starter template, explicit discard-confirm message
+
+**Context:** Backlog item 006 adds a "New Lifebar" flow (from scratch, or from a bundled starter template) as an alternative entry point to the existing file input. Starting a new lifebar while the currently loaded one has unsaved edits must prompt for confirmation instead of silently discarding them — this app has no unsaved-changes tracking yet, since nothing needed it before. The sibling `stage-editor` repo solved the exact same problem for its own "New Stage Wizard" (backlog item 005) with a UI/UX consultation already conducted there (see its `.vibe/decisions/003-new-stage-defaults-and-unsaved-changes-guard.md`) — this decision ports that reasoning directly rather than re-deriving it, since the underlying interaction (an alternative creation entry point, a discard-risk guard, a starter template) is identical, only the data model differs (this app's `LifebarDocument` is a generic, unevaluated section/entry list; `stage-editor`'s `StageData` is a typed struct).
+
+**Decision:**
+1. **Unsaved-changes detection is a snapshot-diff, not an edit-driven boolean flag** — same reasoning as `stage-editor`'s decision: `elements-editor.ts` already mutates the loaded `LifebarDocument` in place and commits on every field's `blur`/`change` regardless of whether the value actually differs, so a flag flipped by that commit would over-report dirty on a no-op edit. `lifebar-document-store.ts` gains a JSON snapshot taken whenever the document was last known clean (loaded, created by the wizard, or saved); `hasUnsavedLifebarChanges()` compares the live document against it on demand. `save-export.ts`'s `doExport` re-snapshots on a successful save, so saving clears the warning without needing to reload.
+2. **A starter template's sprite-reference entries (`.spr`-suffixed keys) use this app's own already-established "unset" value: an empty string** (`.vibe/decisions/004`, `sprite-reference.ts`'s own `parseSpriteReference`) — never a fabricated `"0, 0"`-style value, which would resolve as `"invalid"` the instant the elements editor shows it (no sprite sheet is attached to a from-scratch lifebar), misrepresenting an intentionally-unassigned template field as a real error.
+3. **The discard-confirmation message names the concrete consequence** ("Starting a new lifebar will discard them.") rather than a generic "Are you sure?" — the only signal a blocking native `confirm()` dialog gives, this app's first destructive-action confirmation.
+4. **No second confirm/preview screen before a template commits** — nothing about a template needs configuring before creation; everything remains editable immediately afterward in the existing elements editor.
+
+**Reason:** Reusing an already-validated decision for an identical interaction shape (rather than re-running the same consultation against the same conclusions) is the narrower, faster-to-verify choice here; every point traces back to a concrete gap that consultation already closed in the sibling repo, adapted only where the data model actually differs (point 2's sentinel value).
+
+**Rejected alternatives:**
+- *A `markDocumentEdited()` call wired into `elements-editor.ts`'s existing `onEntryChange`*: rejected — over-reports dirty on a field committed with no real change (a blur with no edit, or a value typed back to its original), same gap `stage-editor`'s own decision already identified for its own `onChange`-driven editors.
+- *A fabricated example sprite reference (e.g. `"9000, 0"`) for template entries*: rejected — creates a false "invalid reference" state on a lifebar that isn't actually broken, the same reasoning `stage-editor`'s decision 003 already rejected this for its own template BG elements.
+- *Re-running a fresh UI/UX consultation from scratch*: rejected — the interaction is structurally identical to `stage-editor`'s already-consulted one; citing and adapting that decision is faster and no less correct than re-deriving the same three points independently.

@@ -1,0 +1,5 @@
+# Module: wizard
+**Role:** The New Lifebar Wizard (backlog item 006): an alternative entry point to `input`'s file-based load, letting the user start editing a brand-new lifebar without loading any file — from scratch, or from a bundled starter template. Guarded by `document`'s `hasUnsavedLifebarChanges()`: a native `confirm()` naming the consequence must be accepted before a dirty document is replaced. Ported directly from the sibling `stage-editor` repo's own New Stage Wizard (its backlog item 005) — same interaction shape, only the data model differs — see `.vibe/decisions/006`.
+**Files:** `src/wizard/new-lifebar-defaults.ts`, `src/wizard/new-lifebar-wizard.ts`
+**Exports:** `createBlankLifebar(): LifebarDocument`, `LIFEBAR_TEMPLATES: readonly LifebarTemplate[]`, `LifebarTemplate` (new-lifebar-defaults.ts) — pure builders, no DOM; `renderNewLifebarWizard(root, options): void`, `NewLifebarWizardOptions` (new-lifebar-wizard.ts) — the DOM layer
+**Depends on:** `modules/lifebar.md` (`LifebarDocument`), `modules/document.md` (`LifebarEditorDocument`, `hasUnsavedLifebarChanges`)

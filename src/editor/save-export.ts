@@ -11,6 +11,7 @@
 import {
   type LifebarEditorDocument,
   getLifebarDocument as defaultGetLifebarDocument,
+  markLifebarDocumentSaved as defaultMarkLifebarDocumentSaved,
 } from "../document/lifebar-document-store.ts";
 import {
   type SffSpriteSheetDocument,
@@ -47,6 +48,8 @@ export interface SaveExportOptions {
   findExportProblems?: typeof defaultFindExportProblems;
   /** Triggers the browser download. Defaults to the real object-URL download; injectable for testing. */
   triggerDownload?: (text: string, fileName: string) => void;
+  /** Records the document as saved (clears the unsaved-changes flag the New Lifebar Wizard's discard guard reads). Defaults to the real document store; injectable for testing. */
+  markLifebarDocumentSaved?: () => void;
 }
 
 function formatProblems(problems: ExportProblem[]): string {
@@ -71,6 +74,8 @@ export function renderSaveExport(
   const findExportProblems =
     options.findExportProblems ?? defaultFindExportProblems;
   const triggerDownload = options.triggerDownload ?? defaultTriggerDownload;
+  const markLifebarDocumentSaved =
+    options.markLifebarDocumentSaved ?? defaultMarkLifebarDocumentSaved;
 
   const button = document.createElement("wuik-button");
   button.dataset.action = "save-export";
@@ -85,6 +90,7 @@ export function renderSaveExport(
   const doExport = (doc: LifebarEditorDocument): void => {
     const text = serializeLifebar(doc.document);
     triggerDownload(text, doc.fileName);
+    markLifebarDocumentSaved();
     status.textContent = `Saved ${doc.fileName}.`;
     exportAnywayButton?.remove();
     exportAnywayButton = null;
