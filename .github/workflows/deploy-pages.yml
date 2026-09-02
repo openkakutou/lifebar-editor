@@ -42,7 +42,7 @@ jobs:
       # — see this repo's own CLAUDE.md ("Own lifebar parser, sff WASM
       # dependency") for where this pin lives.
       - name: Download sff WASM release
-        run: npm run wasm:download -- v0.2.0
+        run: npm run wasm:download -- v0.3.1
 
       - name: Test
         run: npm test
