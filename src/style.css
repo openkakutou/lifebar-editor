@@ -30,6 +30,17 @@ body {
 }
 
 /*
+ * Undo/Redo controls (backlog item 007) — pushed to the toolbar's far end,
+ * away from the title/version cluster, since they act on the document
+ * rather than identifying the app.
+ */
+.app-undo-redo {
+  display: flex;
+  gap: var(--wuik-space-2);
+  margin-inline-start: auto;
+}
+
+/*
  * The "design tokens failed to load" error state deliberately avoids every
  * `--wuik-*` token and component: it is the one screen guaranteed to
  * render when the design system itself failed to load, so it must not

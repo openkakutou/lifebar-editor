@@ -80,3 +80,14 @@ One reason a `LifebarDocument` isn't safe to export as-is, found by `findExportP
 | severity | "blocking" \| "warning" | Blocking: not overridable. Warning: overridable via "Export anyway" |
 
 Defined in: `src/editor/export-validation.ts`
+
+## Command
+A do/undo pair pushed onto `web-ui-kit`'s shared `CommandStack` (item 007). `do` applies a change and is called immediately on push (and again on redo); `undo` reverses it.
+
+| Field | Type | Notes |
+|---|---|---|
+| do | () => void | Applies the change |
+| undo | () => void | Reverses it |
+| coalesceKey | string \| undefined | Unused here — every field commit is its own history entry |
+
+Defined in: `@openkakutou/web-ui-kit` (ambient-declared locally in `src/types/web-ui-kit.d.ts` — the installed package ships no `.d.ts` of its own), constructed in `src/main.ts`

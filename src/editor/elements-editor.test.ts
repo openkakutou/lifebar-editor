@@ -135,7 +135,34 @@ describe("renderElementsEditor", () => {
     input.dispatchEvent(new Event("blur"));
 
     expect(document_.sections[0].entries[0].value).toBe("170,25");
-    expect(onEntryChange).toHaveBeenCalledWith(0, 0, "170,25");
+    expect(onEntryChange).toHaveBeenCalledWith(0, 0, "160,20", "170,25");
+  });
+
+  it("passes the entry's previous value alongside the new one, so a caller can build an undo step", () => {
+    const document_ = doc([
+      {
+        name: "Round",
+        entries: [{ key: "pos", value: "160,20", line: 2 }],
+        line: 1,
+      },
+    ]);
+    const onEntryChange = vi.fn();
+    const root = document.createElement("div");
+    renderElementsEditor(root, document_, null, { onEntryChange });
+    toggles(root)[0].click();
+
+    const input = entriesFor(root, 0).querySelector(
+      "input[type=text]",
+    ) as HTMLInputElement;
+    input.value = "170,25";
+    input.dispatchEvent(new Event("blur"));
+
+    const [sectionIndex, entryIndex, oldValue, newValue] =
+      onEntryChange.mock.calls[0];
+    expect(sectionIndex).toBe(0);
+    expect(entryIndex).toBe(0);
+    expect(oldValue).toBe("160,20");
+    expect(newValue).toBe("170,25");
   });
 
   it("does not fire a change when a plain entry is blurred unchanged", () => {
@@ -317,7 +344,7 @@ describe("renderElementsEditor", () => {
     select.dispatchEvent(new Event("change"));
 
     expect(document_.sections[0].entries[0].value).toBe("9000, 1");
-    expect(onEntryChange).toHaveBeenCalledWith(0, 0, "9000, 1");
+    expect(onEntryChange).toHaveBeenCalledWith(0, 0, "", "9000, 1");
   });
 
   it("keeps a section expanded across a re-render, so a newly loaded sheet appears live without re-navigating", () => {

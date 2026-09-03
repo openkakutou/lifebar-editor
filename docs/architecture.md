@@ -25,6 +25,7 @@ flowchart LR
     editor --> wasm
     editor --> document
     wizard --> document
+    document --> webUiKit["web-ui-kit's\nCommandStack"]
 ```
 
 (`editor`'s save/export screen is what exercises the `editor --> lifebar`
@@ -77,6 +78,11 @@ edge in the write direction — `lifebar.serializeLifebar`, not just
   name) and `sff-sprite-sheet-store.ts` (the file name, raw bytes, and
   decoded sprite groups). Both are plain module-level get/set stores, the
   place `editor` (including its save/export screen) reads from.
+  `command-stack-store.ts` (item 007) is a third, differently-shaped store
+  in the same folder: a single shared `web-ui-kit` `CommandStack` instance
+  rather than a plain get/set pair, since undo/redo history isn't a value
+  to replace but an object with its own `push`/`undo`/`redo` behavior —
+  see "Data flow: undo/redo" below.
 - **`editor`** (`src/editor/`) — the elements editor: lets the user select
   any parsed lifebar section and edit its entries, assigning a sprite to
   any entry that references one. `sprite-reference.ts` is pure logic (no
@@ -97,7 +103,10 @@ edge in the write direction — `lifebar.serializeLifebar`, not just
   the former finds every reason the document isn't safe to export yet, the
   latter wires a button to `lifebar.serializeLifebar` and a browser
   download, gated by that check — see "Data flow: saving/exporting a
-  lifebar" below.
+  lifebar" below. `undo-redo-controls.ts` (item 007) is a thin view over
+  `document`'s shared `CommandStack`: two toolbar buttons whose own
+  disabled state is the undo/redo history's only visible representation —
+  see "Data flow: undo/redo" below.
 - **`wizard`** (`src/wizard/`) — the New Lifebar Wizard (item 006): an
   alternative entry point to `input`'s file-based load. `new-lifebar-defaults.ts`
   is pure logic (no DOM): `createBlankLifebar()` returns a document with no
@@ -265,3 +274,31 @@ stays a one-step round trip — then calls `document`'s
    preview screen, so this is the only positive confirmation a keyboard/
    screen-reader user gets that creation actually landed (a no-op for a
    blank lifebar, which has no section yet to focus).
+
+## Data flow: undo/redo
+
+`app` is the only place that pushes onto `document`'s shared
+`CommandStack` — `editor`'s `elements-editor.ts` itself only reports what
+changed, via the same `onEntryChange` observer used since item 004, now
+extended to also carry the entry's previous value.
+
+1. Committing a field (blur on a plain entry, `change` on a `.spr`
+   entry's sprite `<select>`) mutates the `LifebarDocument` in place, as
+   before, then calls `onEntryChange(sectionIndex, entryIndex, oldValue,
+   newValue)`.
+2. `app` pushes a `Command` onto the shared `CommandStack`: `do` resolves
+   the same entry by index and sets it to `newValue`, `undo` sets it back
+   to `oldValue` — both re-render `editor` afterwards so the field, and
+   any section badge depending on it, reflect the change immediately.
+   Every commit becomes its own history entry; nothing coalesces two
+   separate field edits into one undo step.
+3. `app` refreshes `undo-redo-controls.ts`'s own button state *after*
+   `CommandStack.push` returns, never from inside `do`/`undo` — the stack
+   records an entry (or moves it between its undo/redo lists) only after
+   invoking the callback, so reading `canUndo`/`canRedo` from inside it
+   would see the state one step stale.
+4. Loading a lifebar file or creating one via `wizard` clears the shared
+   `CommandStack` before storing the new document — an undo/redo entry
+   closes over a specific document's section/entry indices, so replaying
+   one against a different document would be meaningless at best. See
+   `.vibe/decisions/007-undo-redo-scoped-to-current-document-shortcut-deferred.md`.

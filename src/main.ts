@@ -1,6 +1,7 @@
 import "@openkakutou/web-ui-kit/tokens.css";
 import "@openkakutou/web-ui-kit";
 import "./style.css";
+import { commandStack } from "./document/command-stack-store.ts";
 import {
   type LifebarEditorDocument,
   getLifebarDocument,
@@ -12,6 +13,7 @@ import {
 } from "./document/sff-sprite-sheet-store.ts";
 import { renderElementsEditor } from "./editor/elements-editor.ts";
 import { renderSaveExport } from "./editor/save-export.ts";
+import { renderUndoRedoControls } from "./editor/undo-redo-controls.ts";
 import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
 import { renderSpriteSheetInput } from "./input/sprite-sheet-input-view.ts";
 import { appVersion } from "./version.ts";
@@ -96,7 +98,10 @@ export function renderApp(
   versionText.className = "app-version";
   versionText.textContent = `v${version}`;
 
-  toolbar.append(title, versionText);
+  const undoRedoSection = document.createElement("div");
+  undoRedoSection.className = "app-undo-redo";
+  const undoRedoControls = renderUndoRedoControls(undoRedoSection);
+  toolbar.append(title, versionText, undoRedoSection);
   shell.appendChild(toolbar);
 
   const main = document.createElement("main");
@@ -111,15 +116,51 @@ export function renderApp(
       elementsSection,
       getLifebarDocument()?.document ?? null,
       getSffSpriteSheet()?.spriteGroups ?? null,
-      { expandedSections: expandedElementSections },
+      {
+        expandedSections: expandedElementSections,
+        onEntryChange: (sectionIndex, entryIndex, oldValue, newValue) => {
+          // The document is already mutated to `newValue` by
+          // elements-editor.ts itself -- `do` below re-applies it (a no-op
+          // the first time, essential on redo, after `undo` reverted it).
+          // See .vibe/decisions/007-undo-redo-scoped-to-current-document-shortcut-deferred.md
+          // for why each commit is its own history entry (item 007).
+          //
+          // `undoRedoControls.refresh()` is called here, after `push`
+          // returns -- not from inside `do`/`undo` themselves. CommandStack
+          // records the entry (or moves it between its undo/redo stacks)
+          // *after* invoking `do`/`undo`, so refreshing from inside them
+          // would read `canUndo`/`canRedo` one step stale.
+          commandStack.push({
+            do: () => {
+              const entry =
+                getLifebarDocument()?.document.sections[sectionIndex].entries[
+                  entryIndex
+                ];
+              if (entry) entry.value = newValue;
+              refreshElementsEditor();
+            },
+            undo: () => {
+              const entry =
+                getLifebarDocument()?.document.sections[sectionIndex].entries[
+                  entryIndex
+                ];
+              if (entry) entry.value = oldValue;
+              refreshElementsEditor();
+            },
+          });
+          undoRedoControls.refresh();
+        },
+      },
     );
   };
 
   const lifebarSection = document.createElement("div");
   renderLifebarFileInput(lifebarSection, {
     onLoaded: (lifebarDocument, fileName) => {
+      commandStack.clear();
       setLifebarDocument({ fileName, document: lifebarDocument });
       refreshElementsEditor();
+      undoRedoControls.refresh();
     },
   });
   main.appendChild(lifebarSection);
@@ -127,8 +168,10 @@ export function renderApp(
   const newLifebarWizardSection = document.createElement("div");
   renderNewLifebarWizard(newLifebarWizardSection, {
     onCreated: (doc: LifebarEditorDocument) => {
+      commandStack.clear();
       setLifebarDocument(doc);
       refreshElementsEditor();
+      undoRedoControls.refresh();
       // The wizard commits immediately, with no second confirm/preview
       // screen, so moving focus into the newly mounted elements editor is
       // the only positive confirmation a keyboard/screen-reader user gets

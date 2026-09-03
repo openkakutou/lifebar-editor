@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Every edit made in the elements editor can now be undone and redone, with dedicated Undo/Redo buttons in the toolbar that show whether either is currently available. Starting or loading a different lifebar clears the undo history, so it never tries to reapply an edit against the wrong document.
+
 ## [0.7.0] - 2026-08-31
 
 ### Added

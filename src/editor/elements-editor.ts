@@ -30,14 +30,17 @@ export interface ElementsEditorOptions {
    */
   expandedSections?: Set<number>;
   /**
-   * Called whenever an Entry's value is committed. The LifebarDocument is
-   * always mutated in place regardless of whether this is provided --
-   * it exists for callers/tests that want to observe the change without
-   * relying on object-identity mutation alone.
+   * Called whenever an Entry's value is committed, with the value it held
+   * just before this commit. The LifebarDocument is always mutated in
+   * place regardless of whether this is provided -- it exists for callers/
+   * tests that want to observe the change without relying on
+   * object-identity mutation alone, and for a caller (item 007's undo/redo
+   * wiring) that needs the previous value to build an undo step from.
    */
   onEntryChange?: (
     sectionIndex: number,
     entryIndex: number,
+    oldValue: string,
     newValue: string,
   ) => void;
 }
@@ -103,6 +106,7 @@ function buildSection(
   onEntryChange: (
     sectionIndex: number,
     entryIndex: number,
+    oldValue: string,
     newValue: string,
   ) => void,
 ): HTMLElement {
@@ -170,6 +174,7 @@ function buildEntries(
   onEntryChange: (
     sectionIndex: number,
     entryIndex: number,
+    oldValue: string,
     newValue: string,
   ) => void,
 ): void {
@@ -215,16 +220,18 @@ function buildEntries(
           // biome-ignore lint/style/noNonNullAssertion: status.kind !== "no-sheet" here, so spriteGroups is loaded.
           spriteGroups!,
           (newValue) => {
+            const oldValue = entry.value;
             entry.value = newValue;
-            onEntryChange(sectionIndex, entryIndex, newValue);
+            onEntryChange(sectionIndex, entryIndex, oldValue, newValue);
           },
         );
       }
     } else {
       buildTextField(row, entry.value, (newValue) => {
         if (newValue === entry.value) return;
+        const oldValue = entry.value;
         entry.value = newValue;
-        onEntryChange(sectionIndex, entryIndex, newValue);
+        onEntryChange(sectionIndex, entryIndex, oldValue, newValue);
       });
     }
 

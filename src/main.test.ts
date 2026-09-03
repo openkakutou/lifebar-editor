@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  commandStack,
+  resetCommandStackForTests,
+} from "./document/command-stack-store.ts";
+import {
   getLifebarDocument,
   hasUnsavedLifebarChanges,
   resetLifebarDocumentForTests,
@@ -23,6 +27,7 @@ describe("renderApp", () => {
     document.title = "";
     resetLifebarDocumentForTests();
     resetSffSpriteSheetForTests();
+    resetCommandStackForTests();
   });
 
   it("mounts a wuik-app-shell root frame with a toolbar heading and version when design tokens are loaded", () => {
@@ -173,6 +178,114 @@ describe("renderApp", () => {
     renderApp(root, "0.1.0", { designTokensLoaded: () => true });
 
     expect(root.querySelector('[data-action="save-export"]')).not.toBeNull();
+  });
+
+  it("mounts Undo/Redo controls into the toolbar, both disabled before anything is loaded", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    const toolbar = root.querySelector('[slot="toolbar"]');
+    const undo = toolbar?.querySelector('[data-action="undo"]');
+    const redo = toolbar?.querySelector('[data-action="redo"]');
+    expect(undo).not.toBeNull();
+    expect(redo).not.toBeNull();
+    expect(undo?.hasAttribute("disabled")).toBe(true);
+    expect(redo?.hasAttribute("disabled")).toBe(true);
+  });
+});
+
+describe("renderApp — undo/redo wiring", () => {
+  beforeEach(() => {
+    resetLifebarDocumentForTests();
+    resetSffSpriteSheetForTests();
+    resetCommandStackForTests();
+  });
+
+  function loadTemplate(root: HTMLElement): void {
+    root
+      .querySelector<HTMLElement>('[data-action="new-lifebar-template"]')
+      ?.click();
+  }
+
+  function firstEntryInput(root: HTMLElement): HTMLInputElement {
+    root
+      .querySelector<HTMLElement>(".elements-editor__section-toggle")
+      ?.click();
+    const input = root.querySelector<HTMLInputElement>(
+      ".elements-editor__entry-input",
+    );
+    if (!input) throw new Error("entry input not found");
+    return input;
+  }
+
+  it("editing a field enables Undo; clicking it reverts the value and the document", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    loadTemplate(root);
+
+    const input = firstEntryInput(root);
+    const originalValue = input.value;
+    input.value = "999, 999";
+    input.dispatchEvent(new Event("blur"));
+
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      "999, 999",
+    );
+    const toolbar = root.querySelector('[slot="toolbar"]');
+    const undoButton = toolbar?.querySelector<HTMLElement>(
+      '[data-action="undo"]',
+    );
+    expect(undoButton?.hasAttribute("disabled")).toBe(false);
+
+    undoButton?.click();
+
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      originalValue,
+    );
+    expect(undoButton?.hasAttribute("disabled")).toBe(true);
+    const redoButton = toolbar?.querySelector<HTMLElement>(
+      '[data-action="redo"]',
+    );
+    expect(redoButton?.hasAttribute("disabled")).toBe(false);
+  });
+
+  it("clicking Redo after Undo re-applies the edit", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    loadTemplate(root);
+
+    const input = firstEntryInput(root);
+    input.value = "999, 999";
+    input.dispatchEvent(new Event("blur"));
+
+    const toolbar = root.querySelector('[slot="toolbar"]');
+    toolbar?.querySelector<HTMLElement>('[data-action="undo"]')?.click();
+    toolbar?.querySelector<HTMLElement>('[data-action="redo"]')?.click();
+
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      "999, 999",
+    );
+  });
+
+  it("starting a new lifebar clears the previous document's undo history", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    loadTemplate(root);
+
+    const input = firstEntryInput(root);
+    input.value = "999, 999";
+    input.dispatchEvent(new Event("blur"));
+    expect(commandStack.canUndo).toBe(true);
+
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    blankLifebarButton(root).click();
+    confirmSpy.mockRestore();
+
+    expect(commandStack.canUndo).toBe(false);
+    const toolbar = root.querySelector('[slot="toolbar"]');
+    expect(
+      toolbar?.querySelector('[data-action="undo"]')?.hasAttribute("disabled"),
+    ).toBe(true);
   });
 });
 
