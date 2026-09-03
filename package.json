@@ -1,7 +1,7 @@
 {
   "name": "lifebar-editor",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Read+write editor for a MUGEN/Ikemen GO lifebar (health/power bar UI, combo counter, round display).",
   "type": "module",
   "engines": {

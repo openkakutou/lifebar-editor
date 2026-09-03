@@ -131,3 +131,39 @@ field then triggering "Blank Lifebar" and observing the real native
 `confirm()` dialog fire with the exact expected message, declining it
 (document unchanged) and then accepting it on a second attempt (document
 replaced) — zero console errors, no defects found.
+
+## Undo/redo (backlog item 007)
+
+`command-stack-store.test.ts` and `undo-redo-controls.test.ts` both
+exercise the *real* `web-ui-kit` `CommandStack` (imported directly), not a
+hand-rolled fake — its own push/undo/redo semantics are already tested
+upstream; what this app's tests need to pin is that its own controls read
+`canUndo`/`canRedo` correctly and that a caller's `do`/`undo` closures see
+the right value at the right time.
+
+That timing question caught a real bug during development, not just in a
+code-review pass: `CommandStack.push`/`undo`/`redo` all invoke a command's
+`do`/`undo` *before* updating their own internal undo/redo lists, so a
+naive `refresh()` call from inside `do`/`undo` itself reads
+`canUndo`/`canRedo` one step stale. `main.test.ts`'s own integration test
+(committing a field, then asserting the toolbar's Undo control is
+enabled) caught this immediately — the fix moved the refresh call to
+after `CommandStack.push` returns, in `main.ts`'s own `onEntryChange`
+handler, not inside the pushed command. `undo-redo-controls.ts`'s own
+button click handlers already had the right shape by construction (call
+`stack.undo()`/`stack.redo()`, *then* `refresh()`), so only the new
+caller-side wiring needed the fix.
+
+Real-browser verification (Playwright) drove the full cycle against a
+live dev server, piercing each `<wuik-button>`'s shadow DOM to assert the
+*inner* native `<button>`'s own `disabled` property (not just the host's
+attribute) — a real click on a disabled native button never dispatches at
+all, so this confirms both the visible affordance and that a
+click-when-disabled is actually inert, not just styled to look inert:
+editing a field enabled Undo, clicking it reverted the field and disabled
+itself while enabling Redo, clicking Redo replayed the edit, and starting
+a new lifebar cleared the history — the last of these also confirmed
+Playwright's default dialog-auto-dismiss behavior correctly blocks
+`window.confirm`-guarded creation when the current document has unsaved
+edits, exactly like the New Lifebar Wizard's own existing discard guard
+(above) — zero console errors, no defects found in the shipped behavior.
