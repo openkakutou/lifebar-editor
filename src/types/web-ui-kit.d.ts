@@ -31,4 +31,49 @@ declare module "@openkakutou/web-ui-kit" {
     redo(): boolean;
     clear(): void;
   }
+
+  /** An action a consuming app registers with a {@link ShortcutManager}. See `web-ui-kit`'s own `src/shortcuts/shortcut-manager.ts`. */
+  export interface ShortcutAction {
+    id: string;
+    label: string;
+    defaultKey: string;
+  }
+
+  export interface ShortcutBinding {
+    id: string;
+    label: string;
+    key: string;
+    isDefault: boolean;
+  }
+
+  export type RebindResult =
+    | { ok: true }
+    | { ok: false; reason: "conflict"; conflictWith: string }
+    | { ok: false; reason: "unknown-action" };
+
+  export interface RebindOptions {
+    swap?: boolean;
+  }
+
+  export interface ShortcutManagerOptions {
+    storageKey?: string;
+    storage?: Storage;
+  }
+
+  export type ShortcutChangeDetail = { id: string; key: string };
+
+  /** A framework-agnostic, headless keyboard-shortcut manager. See `web-ui-kit`'s own `src/shortcuts/shortcut-manager.ts`. */
+  export class ShortcutManager extends EventTarget {
+    constructor(options?: ShortcutManagerOptions);
+    register(action: ShortcutAction): void;
+    list(): ShortcutBinding[];
+    getBinding(id: string): string | undefined;
+    rebind(id: string, key: string, options?: RebindOptions): RebindResult;
+    resetToDefault(id: string): RebindResult;
+  }
+
+  /** `<wuik-shortcuts-panel>`'s element interface -- takes its manager through a JS property, not an attribute. See `web-ui-kit`'s own `src/shortcuts/shortcut-panel.ts`. No `HTMLElementTagNameMap` entry is added (unlike a real `.d.ts` might): this file is a plain ambient-module script, not a module itself, and `declare global` augmentation requires the latter. Callers cast `document.createElement("wuik-shortcuts-panel")` to this type explicitly instead, the same "as unknown as" shape `wasm/bridge.ts` already uses for an untyped global. */
+  export class WuikShortcutsPanelElement extends HTMLElement {
+    manager: ShortcutManager | undefined;
+  }
 }

@@ -222,4 +222,52 @@ describe("renderSaveExport", () => {
       sheet.spriteGroups,
     );
   });
+
+  it("returns a handle whose triggerSaveExport() performs the same export as clicking the button (backlog item 008)", () => {
+    const root = document.createElement("div");
+    const doc = lifebarDocument({ fileName: "arena.def" });
+    const serializeLifebar = vi.fn().mockReturnValue("[Info]\nname = x\n");
+    const triggerDownload = vi.fn();
+
+    const handle = renderSaveExport(root, {
+      getLifebarDocument: () => doc,
+      findExportProblems: () => [],
+      serializeLifebar,
+      triggerDownload,
+    });
+    handle.triggerSaveExport();
+
+    expect(triggerDownload).toHaveBeenCalledWith(
+      "[Info]\nname = x\n",
+      "arena.def",
+    );
+  });
+
+  it("the handle's triggerSaveExport() is blocked by the same validation gate as a click", () => {
+    const root = document.createElement("div");
+    const triggerDownload = vi.fn();
+
+    const handle = renderSaveExport(root, {
+      getLifebarDocument: () => lifebarDocument(),
+      findExportProblems: () => [
+        { sectionName: "Info", message: "broken", severity: "blocking" },
+      ],
+      triggerDownload,
+    });
+    handle.triggerSaveExport();
+
+    expect(triggerDownload).not.toHaveBeenCalled();
+  });
+
+  it("exposes the rendered save/export button on the handle", () => {
+    const root = document.createElement("div");
+
+    const handle = renderSaveExport(root, {
+      getLifebarDocument: () => lifebarDocument(),
+    });
+
+    expect(handle.button).toBe(
+      root.querySelector('[data-action="save-export"]'),
+    );
+  });
 });

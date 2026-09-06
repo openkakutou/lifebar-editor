@@ -1,6 +1,7 @@
 import "@openkakutou/web-ui-kit/tokens.css";
 import "@openkakutou/web-ui-kit";
 import "./style.css";
+import type { WuikShortcutsPanelElement } from "@openkakutou/web-ui-kit";
 import { commandStack } from "./document/command-stack-store.ts";
 import {
   type LifebarEditorDocument,
@@ -16,8 +17,41 @@ import { renderSaveExport } from "./editor/save-export.ts";
 import { renderUndoRedoControls } from "./editor/undo-redo-controls.ts";
 import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
 import { renderSpriteSheetInput } from "./input/sprite-sheet-input-view.ts";
+import { appShortcutManager } from "./shortcuts/app-shortcut-manager.ts";
+import { handleAppShortcutKeydown } from "./shortcuts/app-shortcuts.ts";
+import { bindShortcutLabel } from "./shortcuts/shortcut-label.ts";
+import { renderShortcutsPanelSection } from "./shortcuts/shortcuts-panel-section.ts";
 import { appVersion } from "./version.ts";
 import { renderNewLifebarWizard } from "./wizard/new-lifebar-wizard.ts";
+
+/**
+ * The one `window` keydown listener this app's shortcut dispatcher ever has
+ * attached, so a repeated `renderApp` call (a real reload never does this,
+ * but tests calling it many times against the same jsdom `window` do)
+ * replaces it instead of piling another one on top -- the same "replace, not
+ * append" contract `renderApp` already gives its own DOM content.
+ */
+let currentShortcutKeydownListener:
+  | ((event: KeyboardEvent) => void)
+  | undefined;
+
+/**
+ * `bindShortcutLabel` subscribes each button to the shared, long-lived
+ * `appShortcutManager` singleton -- unlike the buttons themselves, that
+ * singleton is never recreated across a repeated `renderApp` call, so its
+ * subscriptions from a previous call must be torn down explicitly here too,
+ * for the same "replace, don't accumulate" reason as the listener above.
+ */
+let currentShortcutLabelUnbinds: Array<() => void> = [];
+
+/**
+ * The shortcuts section's own `<wuik-shortcuts-panel>` instance, so a
+ * repeated `renderApp` call can unset its `.manager` before the surrounding
+ * DOM is discarded -- that setter is this element's only cleanup path (see
+ * shortcuts-panel-section.ts), and nothing else ever calls it once this
+ * element stops being part of the rendered tree.
+ */
+let currentShortcutsPanelElement: WuikShortcutsPanelElement | undefined;
 
 const APP_TITLE = "Lifebar Editor";
 
@@ -78,6 +112,19 @@ export function renderApp(
   root.replaceChildren();
   document.title = `${APP_TITLE} — v${version}`;
 
+  if (currentShortcutKeydownListener !== undefined) {
+    window.removeEventListener("keydown", currentShortcutKeydownListener);
+    currentShortcutKeydownListener = undefined;
+  }
+  for (const unbind of currentShortcutLabelUnbinds) {
+    unbind();
+  }
+  currentShortcutLabelUnbinds = [];
+  if (currentShortcutsPanelElement !== undefined) {
+    currentShortcutsPanelElement.manager = undefined;
+    currentShortcutsPanelElement = undefined;
+  }
+
   const tokensLoaded = options.designTokensLoaded ?? designTokensLoaded;
   if (!tokensLoaded()) {
     renderDesignTokensError(root);
@@ -101,6 +148,20 @@ export function renderApp(
   const undoRedoSection = document.createElement("div");
   undoRedoSection.className = "app-undo-redo";
   const undoRedoControls = renderUndoRedoControls(undoRedoSection);
+  currentShortcutLabelUnbinds.push(
+    bindShortcutLabel(
+      undoRedoControls.undoButton,
+      appShortcutManager,
+      "undo",
+      "Undo",
+    ),
+    bindShortcutLabel(
+      undoRedoControls.redoButton,
+      appShortcutManager,
+      "redo",
+      "Redo",
+    ),
+  );
   toolbar.append(title, versionText, undoRedoSection);
   shell.appendChild(toolbar);
 
@@ -197,8 +258,32 @@ export function renderApp(
   main.appendChild(elementsSection);
 
   const saveExportSection = document.createElement("div");
-  renderSaveExport(saveExportSection);
+  const saveExportHandle = renderSaveExport(saveExportSection);
+  currentShortcutLabelUnbinds.push(
+    bindShortcutLabel(
+      saveExportHandle.button,
+      appShortcutManager,
+      "save-export",
+      "Save / Export",
+    ),
+  );
   main.appendChild(saveExportSection);
+
+  const shortcutsPanelSection = document.createElement("div");
+  currentShortcutsPanelElement = renderShortcutsPanelSection(
+    shortcutsPanelSection,
+    appShortcutManager,
+  );
+  main.appendChild(shortcutsPanelSection);
+
+  currentShortcutKeydownListener = (event: KeyboardEvent) => {
+    handleAppShortcutKeydown(event, appShortcutManager, {
+      onSaveExport: () => saveExportHandle.triggerSaveExport(),
+      onUndo: () => undoRedoControls.undo(),
+      onRedo: () => undoRedoControls.redo(),
+    });
+  };
+  window.addEventListener("keydown", currentShortcutKeydownListener);
 
   shell.appendChild(main);
 

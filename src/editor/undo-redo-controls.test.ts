@@ -117,4 +117,50 @@ describe("renderUndoRedoControls", () => {
     expect(root.querySelectorAll('[data-action="undo"]')).toHaveLength(1);
     expect(root.querySelectorAll('[data-action="redo"]')).toHaveLength(1);
   });
+
+  it("the handle's undo()/redo() methods perform the same action as clicking, for the shortcut dispatcher (backlog item 008)", () => {
+    const stack = new CommandStack();
+    const root = document.createElement("div");
+    const handle = renderUndoRedoControls(root, { commandStack: stack });
+
+    let value = 0;
+    stack.push({
+      do: () => {
+        value = 1;
+      },
+      undo: () => {
+        value = 0;
+      },
+    });
+    handle.refresh();
+
+    handle.undo();
+    expect(value).toBe(0);
+    expect(controls(root).undo?.hasAttribute("disabled")).toBe(true);
+
+    handle.redo();
+    expect(value).toBe(1);
+    expect(controls(root).redo?.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("calling undo()/redo() with no history does nothing and stays disabled", () => {
+    const stack = new CommandStack();
+    const root = document.createElement("div");
+    const handle = renderUndoRedoControls(root, { commandStack: stack });
+
+    expect(() => handle.undo()).not.toThrow();
+    expect(() => handle.redo()).not.toThrow();
+    expect(controls(root).undo?.hasAttribute("disabled")).toBe(true);
+    expect(controls(root).redo?.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("exposes the rendered Undo/Redo buttons on the handle", () => {
+    const stack = new CommandStack();
+    const root = document.createElement("div");
+
+    const handle = renderUndoRedoControls(root, { commandStack: stack });
+
+    expect(handle.undoButton).toBe(root.querySelector('[data-action="undo"]'));
+    expect(handle.redoButton).toBe(root.querySelector('[data-action="redo"]'));
+  });
 });

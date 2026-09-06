@@ -16,6 +16,7 @@ flowchart LR
     app --> document["document\n(src/document/)"]
     app --> editor["editor\n(src/editor/)"]
     app --> wizard["wizard\n(src/wizard/)"]
+    app --> shortcuts["shortcuts\n(src/shortcuts/)"]
     input --> lifebar["lifebar\n(src/lifebar/)"]
     input --> document
     input --> wasm["wasm\n(src/wasm/)"]
@@ -26,6 +27,7 @@ flowchart LR
     editor --> document
     wizard --> document
     document --> webUiKit["web-ui-kit's\nCommandStack"]
+    shortcuts --> webUiKit2["web-ui-kit's\nShortcutManager"]
 ```
 
 (`editor`'s save/export screen is what exercises the `editor --> lifebar`
@@ -120,6 +122,23 @@ edge in the write direction — `lifebar.serializeLifebar`, not just
   accepted before the new document replaces it. See
   `.vibe/decisions/006-new-lifebar-wizard-defaults-and-unsaved-changes-guard.md`
   and "Data flow: creating a new lifebar" below.
+- **`shortcuts`** (`src/shortcuts/`, item 008) — this app's keyboard
+  shortcuts, wired through `web-ui-kit`'s shared, headless `ShortcutManager`
+  rather than a hardcoded key handler. `app-shortcuts.ts` is pure logic (no
+  DOM): it registers the three actions this app has (Save/Export, Undo,
+  Redo) with their default bindings, and resolves a live `KeyboardEvent`
+  into whichever action currently owns that combo — a local port of
+  `web-ui-kit`'s own (unexported) combo-normalization rule, since it isn't
+  part of that package's public API. `app-shortcut-manager.ts` is the
+  module-level singleton `main.ts` shares across the keydown dispatcher, the
+  shortcuts panel, and every button's live label. `shortcuts-panel-section.ts`
+  mounts `web-ui-kit`'s `<wuik-shortcuts-panel>` in a collapsible section —
+  started expanded, unlike this app's other collapsible sections, since it's
+  the only place this feature can be discovered. `shortcut-label.ts` keeps
+  each action's own button's tooltip/`aria-keyshortcuts` in sync with its
+  live binding. See
+  `.vibe/decisions/008-remappable-shortcuts-scope-input-guard-and-discoverability.md`
+  and "Data flow: keyboard shortcuts" below.
 
 ## Data model
 
@@ -302,3 +321,29 @@ extended to also carry the entry's previous value.
    closes over a specific document's section/entry indices, so replaying
    one against a different document would be meaningless at best. See
    `.vibe/decisions/007-undo-redo-scoped-to-current-document-shortcut-deferred.md`.
+
+## Data flow: keyboard shortcuts
+
+1. `main.ts` registers Save/Export, Undo, and Redo on a single
+   `appShortcutManager` singleton at startup, and attaches one `window`
+   `keydown` listener that calls `app-shortcuts.ts`'s
+   `handleAppShortcutKeydown` on every keystroke.
+2. That function normalizes the event into a combo string and looks up
+   which action (if any) currently owns it on the manager — the *live*
+   binding, default or user-rebound, never a hardcoded key comparison.
+3. Undo/Redo defer (return unhandled) when the event's target is a text
+   input, textarea, or contenteditable region, so the browser's own
+   in-field undo/redo keeps working; Save/Export always fires and always
+   calls `preventDefault()`, since it has no in-field meaning of its own to
+   conflict with — only the browser's own "Save Page" dialog, which must
+   always be suppressed. See
+   `.vibe/decisions/008-remappable-shortcuts-scope-input-guard-and-discoverability.md`.
+4. `shortcuts-panel-section.ts` mounts `web-ui-kit`'s `<wuik-shortcuts-panel>`
+   fed the same manager instance — rebinding through it fires the manager's
+   own `change` event, which `shortcut-label.ts` listens for to keep each
+   button's tooltip current, and which the manager itself persists to
+   `localStorage` under an app-scoped key so a rebind survives a reload.
+5. `main.ts` tears down the previous render's `window` listener, its
+   buttons' label subscriptions, and the shortcuts panel's own manager
+   reference before building a new one — the manager singleton outlives any
+   one render, so nothing unsubscribed here would otherwise leak.

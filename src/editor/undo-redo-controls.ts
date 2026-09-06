@@ -21,6 +21,13 @@ export interface UndoRedoControlsHandle {
    * change event to subscribe to.
    */
   refresh(): void;
+  /** Runs the exact same undo the button's own click handler runs -- for a caller that needs to trigger it from outside a click, e.g. the keyboard shortcut dispatcher (backlog item 008). */
+  undo(): void;
+  /** Runs the exact same redo the button's own click handler runs. See `undo()`. */
+  redo(): void;
+  /** The rendered buttons, for a caller that needs to reflect their live shortcut binding on them (backlog item 008). */
+  undoButton: HTMLElement;
+  redoButton: HTMLElement;
 }
 
 /**
@@ -51,17 +58,21 @@ export function renderUndoRedoControls(
     redoButton.toggleAttribute("disabled", !stack.canRedo);
   }
 
-  undoButton.addEventListener("click", () => {
+  function undo(): void {
     stack.undo();
     refresh();
-  });
-  redoButton.addEventListener("click", () => {
+  }
+
+  function redo(): void {
     stack.redo();
     refresh();
-  });
+  }
+
+  undoButton.addEventListener("click", undo);
+  redoButton.addEventListener("click", redo);
 
   refresh();
   root.append(undoButton, redoButton);
 
-  return { refresh };
+  return { refresh, undo, redo, undoButton, redoButton };
 }

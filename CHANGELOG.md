@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Save/Export, Undo, and Redo now each have a keyboard shortcut (Ctrl+S, Ctrl+Z, Ctrl+Y by default), shown as a tooltip on their own button. A new "Keyboard Shortcuts" panel lets users rebind any of them to a key of their choosing, with the change remembered the next time they open the app. Undo/Redo defer to a text field's own native undo while typing in it; Save/Export always works and never lets the browser's own "Save Page" dialog appear instead.
+
 ## [0.8.0] - 2026-09-03
 
 ### Added

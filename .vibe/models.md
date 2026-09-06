@@ -91,3 +91,27 @@ A do/undo pair pushed onto `web-ui-kit`'s shared `CommandStack` (item 007). `do`
 | coalesceKey | string \| undefined | Unused here — every field commit is its own history entry |
 
 Defined in: `@openkakutou/web-ui-kit` (ambient-declared locally in `src/types/web-ui-kit.d.ts` — the installed package ships no `.d.ts` of its own), constructed in `src/main.ts`
+
+## ShortcutAction / ShortcutBinding
+An action this app registers with `web-ui-kit`'s shared `ShortcutManager` (item 008): `ShortcutAction` is the registration shape (`id`, `label`, `defaultKey`); `ShortcutBinding` is what `manager.list()` reports back — the action's *live* key (default or user-rebound) plus whether it's still the default.
+
+| Type | Field | Type | Notes |
+|---|---|---|---|
+| ShortcutAction | id | string | `"save-export"` \| `"undo"` \| `"redo"` in this app |
+| ShortcutAction | label | string | Shown in the shortcuts panel |
+| ShortcutAction | defaultKey | string | e.g. `"Ctrl+S"` |
+| ShortcutBinding | key | string | The current binding, default or rebound |
+| ShortcutBinding | isDefault | boolean | `false` once the user has rebound it |
+
+Defined in: `@openkakutou/web-ui-kit` (ambient-declared locally in `src/types/web-ui-kit.d.ts`), registered via `src/shortcuts/app-shortcuts.ts`'s `APP_SHORTCUT_ACTIONS`
+
+## AppShortcutHandlers
+The three callbacks `handleAppShortcutKeydown` invokes, one per action this app actually has. Not a persisted model — a plain callback bag a caller (`src/main.ts`) supplies per render, wired straight to `SaveExportHandle.triggerSaveExport`/`UndoRedoControlsHandle.undo`/`.redo`.
+
+| Field | Type | Notes |
+|---|---|---|
+| onSaveExport | () => void | |
+| onUndo | () => void | Not called while focus is in a text field |
+| onRedo | () => void | Not called while focus is in a text field |
+
+Defined in: `src/shortcuts/app-shortcuts.ts`

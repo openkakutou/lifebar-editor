@@ -10,6 +10,7 @@ import {
 } from "./document/lifebar-document-store.ts";
 import { resetSffSpriteSheetForTests } from "./document/sff-sprite-sheet-store.ts";
 import { designTokensLoaded, renderApp } from "./main.ts";
+import { appShortcutManager } from "./shortcuts/app-shortcut-manager.ts";
 
 function fileFromText(name: string, text: string): File {
   return new File([text], name, { type: "text/plain" });
@@ -286,6 +287,210 @@ describe("renderApp — undo/redo wiring", () => {
     expect(
       toolbar?.querySelector('[data-action="undo"]')?.hasAttribute("disabled"),
     ).toBe(true);
+  });
+});
+
+describe("renderApp — keyboard shortcuts wiring (backlog item 008)", () => {
+  beforeEach(() => {
+    resetLifebarDocumentForTests();
+    resetSffSpriteSheetForTests();
+    resetCommandStackForTests();
+  });
+
+  function dispatchShortcut(
+    target: EventTarget,
+    init: { key: string; ctrlKey?: boolean },
+  ): void {
+    target.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: init.key,
+        ctrlKey: init.ctrlKey ?? false,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  }
+
+  function loadTemplateAndOpenFirstEntry(root: HTMLElement): HTMLInputElement {
+    root
+      .querySelector<HTMLElement>('[data-action="new-lifebar-template"]')
+      ?.click();
+    root
+      .querySelector<HTMLElement>(".elements-editor__section-toggle")
+      ?.click();
+    const input = root.querySelector<HTMLInputElement>(
+      ".elements-editor__entry-input",
+    );
+    if (!input) throw new Error("entry input not found");
+    return input;
+  }
+
+  it("Ctrl+S triggers the same save/export flow as clicking the button", () => {
+    // A blank lifebar (no sections) has nothing for export-validation to
+    // warn about, so save/export downloads immediately -- the template's
+    // own unset sprite references would otherwise surface the "export
+    // anyway" warning gate (item 005), which this test isn't exercising.
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    root
+      .querySelector<HTMLElement>('[data-action="new-lifebar-blank"]')
+      ?.click();
+
+    dispatchShortcut(window, { key: "s", ctrlKey: true });
+
+    expect(clickSpy).toHaveBeenCalledOnce();
+    expect(hasUnsavedLifebarChanges()).toBe(false);
+    clickSpy.mockRestore();
+  });
+
+  it("Ctrl+Z triggers Undo and Ctrl+Y triggers Redo on the shared toolbar controls", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    const input = loadTemplateAndOpenFirstEntry(root);
+    const originalValue = input.value;
+    input.value = "999, 999";
+    input.dispatchEvent(new Event("blur"));
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      "999, 999",
+    );
+
+    dispatchShortcut(window, { key: "z", ctrlKey: true });
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      originalValue,
+    );
+
+    dispatchShortcut(window, { key: "y", ctrlKey: true });
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      "999, 999",
+    );
+  });
+
+  it("Ctrl+Z does not run the document Undo while focus is inside a text field, leaving native field-undo alone", () => {
+    const root = document.createElement("div");
+    document.body.appendChild(root);
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    const input = loadTemplateAndOpenFirstEntry(root);
+    input.value = "999, 999";
+    input.dispatchEvent(new Event("blur"));
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      "999, 999",
+    );
+
+    dispatchShortcut(input, { key: "z", ctrlKey: true });
+
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      "999, 999",
+    );
+    root.remove();
+  });
+
+  it("does nothing for a key combo bound to no action", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    expect(() =>
+      dispatchShortcut(window, { key: "k", ctrlKey: true }),
+    ).not.toThrow();
+  });
+
+  it("does not accumulate keydown listeners across repeated renders", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    const input = loadTemplateAndOpenFirstEntry(root);
+    input.value = "AAA";
+    input.dispatchEvent(new Event("blur"));
+    input.value = "BBB";
+    input.dispatchEvent(new Event("blur"));
+
+    dispatchShortcut(window, { key: "z", ctrlKey: true });
+
+    // A single Ctrl+Z should undo only the most recent edit. If a stale
+    // listener from the first render were still attached, this one keydown
+    // would fire the handler twice and undo both edits in one press.
+    expect(getLifebarDocument()?.document.sections[0].entries[0].value).toBe(
+      "AAA",
+    );
+  });
+});
+
+describe("renderApp — shortcuts panel and discoverability (backlog item 008)", () => {
+  beforeEach(() => {
+    resetLifebarDocumentForTests();
+    resetSffSpriteSheetForTests();
+    resetCommandStackForTests();
+    // `appShortcutManager` is a real, long-lived singleton (persisted to the
+    // real localStorage) -- reset any rebind a previous test may have left
+    // behind so tests here don't leak into each other.
+    for (const id of ["save-export", "undo", "redo"]) {
+      appShortcutManager.resetToDefault(id);
+    }
+  });
+
+  it("mounts the shared shortcuts panel, fed this app's own manager", () => {
+    const root = document.createElement("div");
+
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    const panelEl = root.querySelector("wuik-shortcuts-panel");
+    expect(panelEl).not.toBeNull();
+    // biome-ignore lint/suspicious/noExplicitAny: reading a custom element's own JS property, not part of any typed DOM interface.
+    expect((panelEl as any).manager).toBe(appShortcutManager);
+  });
+
+  it("shows each action's current shortcut on its own button as a title/aria-keyshortcuts hint", () => {
+    const root = document.createElement("div");
+
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    const saveExportButton = root.querySelector<HTMLElement>(
+      '[data-action="save-export"]',
+    );
+    const toolbar = root.querySelector('[slot="toolbar"]');
+    const undoButton = toolbar?.querySelector<HTMLElement>(
+      '[data-action="undo"]',
+    );
+    expect(saveExportButton?.title).toBe("Save / Export (Ctrl+S)");
+    expect(saveExportButton?.getAttribute("aria-keyshortcuts")).toBe("Ctrl+S");
+    expect(undoButton?.title).toBe("Undo (Ctrl+Z)");
+  });
+
+  it("updates a button's shortcut hint live when the shared manager rebinds its action", () => {
+    const root = document.createElement("div");
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    appShortcutManager.rebind("save-export", "Ctrl+E");
+
+    const saveExportButton = root.querySelector<HTMLElement>(
+      '[data-action="save-export"]',
+    );
+    expect(saveExportButton?.title).toBe("Save / Export (Ctrl+E)");
+  });
+
+  it("unsubscribes the previous render's button bindings from the shared manager before adding new ones", () => {
+    const addSpy = vi.spyOn(appShortcutManager, "addEventListener");
+    const removeSpy = vi.spyOn(appShortcutManager, "removeEventListener");
+    const root = document.createElement("div");
+
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+    const addedByFirstRender = addSpy.mock.calls.length;
+    const removedBeforeSecondRender = removeSpy.mock.calls.length;
+    expect(addedByFirstRender).toBeGreaterThan(0);
+
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    // The second render's cleanup pass must remove exactly what the first
+    // render itself added, before adding its own -- an actual leak would
+    // leave this delta short of `addedByFirstRender`.
+    const removedBySecondRenderCleanup =
+      removeSpy.mock.calls.length - removedBeforeSecondRender;
+    expect(removedBySecondRenderCleanup).toBe(addedByFirstRender);
+
+    addSpy.mockRestore();
+    removeSpy.mockRestore();
   });
 });
 

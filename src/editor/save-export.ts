@@ -56,6 +56,18 @@ function formatProblems(problems: ExportProblem[]): string {
   return problems.map((p) => `${p.sectionName}: ${p.message}`).join(" ");
 }
 
+export interface SaveExportHandle {
+  /**
+   * Runs the exact same export this button's own click handler runs (same
+   * validation gate, same status/"export anyway" behavior) -- for a caller
+   * that needs to trigger it from outside a click, e.g. the keyboard
+   * shortcut dispatcher (backlog item 008).
+   */
+  triggerSaveExport(): void;
+  /** The rendered button element, for a caller that needs to reflect its live shortcut binding on it (backlog item 008). */
+  button: HTMLElement;
+}
+
 /** Renders a "Save / Export" button into `root`. Reads the currently
  * loaded document fresh on every click (rather than a stale snapshot),
  * matching the document store's own "single place editor screens read
@@ -63,7 +75,7 @@ function formatProblems(problems: ExportProblem[]): string {
 export function renderSaveExport(
   root: HTMLElement,
   options: SaveExportOptions = {},
-): void {
+): SaveExportHandle {
   root.replaceChildren();
 
   const getLifebarDocument =
@@ -96,7 +108,7 @@ export function renderSaveExport(
     exportAnywayButton = null;
   };
 
-  button.addEventListener("click", () => {
+  function triggerSaveExport(): void {
     exportAnywayButton?.remove();
     exportAnywayButton = null;
 
@@ -127,7 +139,11 @@ export function renderSaveExport(
     }
 
     doExport(doc);
-  });
+  }
+
+  button.addEventListener("click", triggerSaveExport);
 
   root.append(button, status);
+
+  return { triggerSaveExport, button };
 }

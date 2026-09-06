@@ -12,6 +12,7 @@ This project is in early-stage development. Available now:
 - Save/export the edited lifebar as a downloadable file. If a sprite assignment still needs attention, exporting shows a clear warning naming the affected element instead of leaving in-progress work stuck with no way to save it — an explicit "Export anyway" choice is offered. A value that this file format simply can't store safely blocks the export outright until it's fixed, so a file is never silently exported broken.
 - Start a brand-new lifebar without loading a file first — blank, or from a bundled starter template with a life bar and power bar already set up. Starting a new one while the current one has unsaved edits asks for confirmation, naming what would be lost.
 - Undo and redo any edit made to the loaded lifebar's elements, with dedicated toolbar buttons that show whether either is currently available. Starting or loading a different lifebar clears the undo history.
+- Save/Export, Undo, and Redo each have a keyboard shortcut (Ctrl+S, Ctrl+Z, Ctrl+Y by default), shown as a tooltip on their own button. A "Keyboard Shortcuts" panel lets you rebind any of them to a key of your choosing, remembered the next time you open the app. Undo/Redo step aside for a text field's own native undo while you're typing in it; Save/Export always works and never lets the browser's own "Save Page" dialog get in the way.
 <!-- vibe:end:features -->
 
 <!-- vibe:begin:install -->

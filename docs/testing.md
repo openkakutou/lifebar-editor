@@ -44,6 +44,14 @@ Native browser objects jsdom doesn't construct in a test-friendly way (a
 drop event's `dataTransfer`) are stubbed with `Object.defineProperty` in
 tests rather than built through jsdom's own `DataTransfer`.
 
+`jsdom` does not implement `Element.isContentEditable` at all — it stays
+`undefined` even once the `contenteditable` attribute is set.
+`app-shortcuts.ts`'s `isEditableTarget` checks the attribute directly via
+`closest('[contenteditable]:not([contenteditable="false"])')` instead,
+which works identically in jsdom and a real browser (and correctly follows
+inherited editability through ancestors, same as the property it stands in
+for).
+
 `jsdom` does not implement `HTMLCanvasElement.getContext("2d")` at all —
 `sprite-browser.ts`'s pixel-drawing effect (`drawPixels`) is injectable for
 exactly this reason, with a real default (`defaultDrawPixels`) verified
@@ -167,3 +175,54 @@ Playwright's default dialog-auto-dismiss behavior correctly blocks
 `window.confirm`-guarded creation when the current document has unsaved
 edits, exactly like the New Lifebar Wizard's own existing discard guard
 (above) — zero console errors, no defects found in the shipped behavior.
+
+## Keyboard shortcuts (backlog item 008)
+
+`app-shortcuts.test.ts` builds its own `ShortcutManager` instances (a real
+`web-ui-kit` import, not a fake) backed by an in-memory `Storage` stub, so
+rebind/conflict/persistence semantics stay upstream's own responsibility to
+test — what this app's suite pins is that a live `KeyboardEvent` resolves
+to the *currently bound* action (default or rebound, including after a
+swap), that Undo/Redo defer inside an editable target while Save/Export
+never does, and that an unbound combo is a true no-op (`preventDefault`
+never called, no handler invoked). `main.test.ts`'s own integration tests
+then dispatch real `keydown` events against the fully wired app — including
+one that presses a combo from *inside* a real `<input>` versus from
+`window` directly, since a jsdom event only bubbles to `window` from a node
+actually attached to `document.body` (a detached test root would make an
+in-field assertion pass for the wrong reason, never actually reaching the
+listener).
+
+A repeated `renderApp` call (never a real reload — only tests exercise
+this) is asserted not to leak: one test spies on `appShortcutManager`'s own
+`addEventListener`/`removeEventListener` and confirms a second render
+removes exactly as many subscriptions as the first render added, which is
+what caught a real bug during development (below).
+
+Real-browser verification (Playwright) drove the full feature against a
+live dev server: Ctrl+S downloaded a blank lifebar with no native "Save
+Page" dialog interfering; editing a field then pressing Ctrl+Z outside it
+reverted the edit and genuinely disabled the native `<button>` inside
+`<wuik-button>`'s shadow DOM (not just its host attribute); Ctrl+Y replayed
+it; pressing Ctrl+Z from *inside* the just-edited field left it untouched,
+and pressing it again after moving focus out then reverted it — confirming
+the in-field guard for real, not just under jsdom's own event-target
+semantics. Rebinding Save/Export from Ctrl+S to Ctrl+E through the actual
+`<wuik-shortcuts-panel>` UI (piercing its shadow DOM to click its own
+"Rebind" button, then pressing the new combo for real) updated the
+button's tooltip live, made Ctrl+S stop downloading, made Ctrl+E start,
+and survived a real page reload — zero console errors.
+
+This work also caught a real leak during development, not just in review:
+`<wuik-shortcuts-panel>`'s own `set manager` unsubscribes from a
+*previous* manager only when a *new* one is set on that *same instance* —
+it has no `disconnectedCallback` cleanup of its own. `renderApp` discards
+and recreates this element on every call, so without an explicit fix the
+shared `appShortcutManager` singleton would keep adding a listener to it
+per render, keeping every prior, now-detached panel instance reachable (and
+still reacting to every future rebind) for the rest of the page's life.
+The fix: `shortcuts-panel-section.ts` returns the mounted element, and
+`main.ts` sets its `.manager` back to `undefined` — triggering that same
+setter's own cleanup path — before discarding it on the next render. The
+`addEventListener`/`removeEventListener`-count test above is what pins this
+against regressing.
