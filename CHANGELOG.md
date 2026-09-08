@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed a collapsed sprite group in the sprite browser still showing its thumbnails instead of hiding them.
+
 ## [0.9.0] - 2026-09-06
 
 ### Added

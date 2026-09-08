@@ -204,6 +204,17 @@ body {
   padding: var(--wuik-space-3) 0;
 }
 
+/*
+ * An author `display` rule on the same element otherwise defeats the
+ * `hidden` attribute's own UA-stylesheet `display: none` (author styles
+ * win over UA styles at equal specificity) -- this restores it, at higher
+ * specificity than the plain class rule above, so a collapsed group's
+ * thumbnails are actually hidden, not just marked `hidden` in the DOM.
+ */
+.sprite-browser__grid[hidden] {
+  display: none;
+}
+
 .sprite-browser__thumb {
   display: flex;
   flex-direction: column;
