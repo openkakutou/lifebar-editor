@@ -113,8 +113,10 @@ is invisible to the unit suite regardless of how the `hidden` property
 itself is asserted. The fix is a `[hidden]`-qualified override rule (see
 `elements-editor__entries[hidden]` in `src/style.css`); the same
 unqualified-`display`-plus-`hidden` pattern was found to pre-date this in
-`sprite-browser.ts`/`.sprite-browser__grid` too, tracked separately as
-backlog item `012` rather than fixed as a side effect of unrelated work.
+`sprite-browser.ts`/`.sprite-browser__grid` too — fixed the same way
+(`sprite-browser__grid[hidden]`) as its own backlog item `012`, verified
+the same way (a real headless-Chrome check, since jsdom can't apply CSS
+here either) rather than a new jsdom assertion.
 
 ## New Lifebar Wizard (backlog item 006)
 
