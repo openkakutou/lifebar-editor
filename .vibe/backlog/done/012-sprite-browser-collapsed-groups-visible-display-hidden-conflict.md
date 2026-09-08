@@ -1,5 +1,5 @@
 ---
-status: todo
+status: done
 ---
 # Sprite Browser's Collapsed Groups Are Actually Visible (display/hidden CSS conflict)
 
