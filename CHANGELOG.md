@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-09
+
 ### Added
 
 - The app now supports English and French. A language switcher in the toolbar changes the displayed language instantly, with no page reload, and the choice is remembered the next time the app is opened.
@@ -65,7 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Adopted the shared `web-ui-kit` design system as this app's root frame: a themed layout shell with the app title and version, styled entirely with design tokens instead of ad-hoc CSS. If the design system fails to load, a clear error message is shown instead of a broken or blank page.
 
-[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/openkakutou/lifebar-editor/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/openkakutou/lifebar-editor/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/openkakutou/lifebar-editor/compare/v0.7.0...v0.8.0
