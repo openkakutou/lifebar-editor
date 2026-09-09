@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   commandStack,
   resetCommandStackForTests,
@@ -9,6 +9,7 @@ import {
   resetLifebarDocumentForTests,
 } from "./document/lifebar-document-store.ts";
 import { resetSffSpriteSheetForTests } from "./document/sff-sprite-sheet-store.ts";
+import { initAppI18n } from "./i18n/i18n.ts";
 import { designTokensLoaded, renderApp } from "./main.ts";
 import { appShortcutManager } from "./shortcuts/app-shortcut-manager.ts";
 
@@ -585,5 +586,133 @@ describe("renderApp — New Lifebar Wizard integration", () => {
       "edited",
     );
     confirmSpy.mockRestore();
+  });
+});
+
+describe("renderApp — localization (backlog item 009)", () => {
+  beforeEach(() => {
+    resetLifebarDocumentForTests();
+    resetSffSpriteSheetForTests();
+    resetCommandStackForTests();
+    for (const id of ["save-export", "undo", "redo"]) {
+      appShortcutManager.resetToDefault(id);
+    }
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("renders a locale switcher in the toolbar, labelled for accessibility", () => {
+    const root = document.createElement("div");
+
+    renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+    const switcher = root.querySelector("wuik-locale-switcher");
+    expect(switcher).not.toBeNull();
+    expect(switcher?.getAttribute("label")).toBe("Language");
+    expect(root.querySelector('[slot="toolbar"]')?.contains(switcher)).toBe(
+      true,
+    );
+  });
+
+  describe("live locale switching", () => {
+    it("re-translates the toolbar controls and their shortcut hints when the locale changes, without a page reload", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const root = document.createElement("div");
+      renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+      const toolbar = root.querySelector('[slot="toolbar"]');
+      const undoButton = toolbar?.querySelector<HTMLElement>(
+        '[data-action="undo"]',
+      );
+      const redoButton = toolbar?.querySelector<HTMLElement>(
+        '[data-action="redo"]',
+      );
+      const saveExportButton = root.querySelector<HTMLElement>(
+        '[data-action="save-export"]',
+      );
+      expect(undoButton?.textContent).toBe("Undo");
+      expect(saveExportButton?.textContent).toBe("Save / Export");
+      expect(saveExportButton?.title).toBe("Save / Export (Ctrl+S)");
+
+      await instance.changeLanguage("fr");
+
+      await vi.waitFor(() => {
+        expect(
+          root.querySelector("wuik-locale-switcher")?.getAttribute("label"),
+        ).toBe("Langue");
+      });
+      expect(undoButton?.textContent).toBe("Annuler");
+      expect(redoButton?.textContent).toBe("Rétablir");
+      // Save/Export's own button text is retranslated by save-export.ts's
+      // own internal onLocaleChange subscription -- see save-export.test.ts.
+      // Its shortcut-hint title is main.ts's own responsibility (it's the
+      // only place holding both the translated base label and the live
+      // shortcut manager binding), asserted here.
+      expect(saveExportButton?.title).toBe("Enregistrer / Exporter (Ctrl+S)");
+
+      await instance.changeLanguage("en");
+    });
+
+    it("keeps an expanded elements-editor section expanded across a locale change", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const root = document.createElement("div");
+      renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+
+      const dropZone = root.querySelector(".lifebar-input__dropzone");
+      if (!dropZone) throw new Error("dropzone not found");
+      dispatchDrop(dropZone, [
+        fileFromText("fight.def", "[Info]\nname = Default\n"),
+      ]);
+
+      await vi.waitFor(() => {
+        expect(
+          root.querySelector(".elements-editor__section-toggle"),
+        ).not.toBeNull();
+      });
+      const toggle = root.querySelector<HTMLElement>(
+        ".elements-editor__section-toggle",
+      );
+      toggle?.click();
+      expect(toggle?.getAttribute("aria-expanded")).toBe("true");
+
+      await instance.changeLanguage("fr");
+      await vi.waitFor(() => {
+        expect(
+          root.querySelector("wuik-locale-switcher")?.getAttribute("label"),
+        ).toBe("Langue");
+      });
+
+      const toggleAfter = root.querySelector<HTMLElement>(
+        ".elements-editor__section-toggle",
+      );
+      expect(toggleAfter?.getAttribute("aria-expanded")).toBe("true");
+
+      await instance.changeLanguage("en");
+    });
+
+    it("does not add a duplicate shortcut-manager listener per locale change", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const addSpy = vi.spyOn(appShortcutManager, "addEventListener");
+      const root = document.createElement("div");
+      renderApp(root, "0.1.0", { designTokensLoaded: () => true });
+      const addedByRender = addSpy.mock.calls.length;
+
+      await instance.changeLanguage("fr");
+      await vi.waitFor(() => {
+        expect(
+          root.querySelector("wuik-locale-switcher")?.getAttribute("label"),
+        ).toBe("Langue");
+      });
+
+      expect(addSpy.mock.calls.length).toBe(addedByRender);
+
+      addSpy.mockRestore();
+      await instance.changeLanguage("en");
+    });
   });
 });

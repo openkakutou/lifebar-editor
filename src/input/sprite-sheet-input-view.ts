@@ -6,6 +6,7 @@
 // Distinguishes three failure causes with distinct, actionable status
 // text: reading the file, bringing up the WASM module, and the module
 // reporting a malformed file — see sprite-sheet-input.ts.
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import { renderSpriteBrowser } from "../viewer/sprite-browser.ts";
 import type { SpriteGroup } from "../wasm/types.ts";
 import {
@@ -25,6 +26,54 @@ export interface SpriteSheetInputViewOptions {
 }
 
 /**
+ * What the status line currently shows -- a small tagged description of the
+ * situation and its raw parameters, not pre-formatted text. Kept as data
+ * (not a string) so a locale change can re-format it in the new language
+ * without re-reading/re-decoding the sheet that produced it. See
+ * .vibe/decisions/009-i18n-integration-approach.md.
+ */
+type Status =
+  | { kind: "idle" }
+  | { kind: "reading" }
+  | { kind: "success"; fileName: string; groupCount: number }
+  | { kind: "read-error"; fileName: string; message: string }
+  | { kind: "setup-error"; fileName: string; message: string }
+  | { kind: "parse-error"; fileName: string; message: string };
+
+function formatStatus(status: Status): string {
+  switch (status.kind) {
+    case "idle":
+      return "";
+    case "reading":
+      return t("input.spriteSheet.reading", "Reading…");
+    case "success":
+      return t(
+        "input.spriteSheet.success",
+        "Loaded {{fileName}} — {{count}} group(s) found.",
+        { fileName: status.fileName, count: String(status.groupCount) },
+      );
+    case "read-error":
+      return t(
+        "input.spriteSheet.errorRead",
+        "Could not read {{fileName}}: {{message}}. Try selecting the file again.",
+        { fileName: status.fileName, message: status.message },
+      );
+    case "setup-error":
+      return t(
+        "input.spriteSheet.errorSetup",
+        'The sff WASM build isn\'t available ({{message}}). Run "npm run wasm:download -- <version>" to fetch it, then try again.',
+        { message: status.message },
+      );
+    case "parse-error":
+      return t(
+        "input.spriteSheet.errorParse",
+        "Could not parse {{fileName}}: {{message}}. Check that this is a valid .sff file.",
+        { fileName: status.fileName, message: status.message },
+      );
+  }
+}
+
+/**
  * Renders the sprite sheet input into `root`, replacing its previous
  * content.
  */
@@ -35,7 +84,7 @@ export function renderSpriteSheetInput(
   root.replaceChildren();
 
   let phase: "idle" | "loading" | "success" | "error" = "idle";
-  let statusMessage = "";
+  let status: Status = { kind: "idle" };
 
   const panel = document.createElement("wuik-panel");
   panel.className = "sprite-sheet-input";
@@ -46,7 +95,6 @@ export function renderSpriteSheetInput(
   const label = document.createElement("label");
   label.className = "sprite-sheet-input__label";
   label.htmlFor = "sprite-sheet-picker";
-  label.textContent = "Select a sprite sheet (.sff)";
 
   const picker = document.createElement("input");
   picker.type = "file";
@@ -55,19 +103,29 @@ export function renderSpriteSheetInput(
 
   const hint = document.createElement("p");
   hint.className = "sprite-sheet-input__hint";
-  hint.textContent = "…or drag and drop it here";
 
   dropZone.append(label, picker, hint);
 
-  const status = document.createElement("div");
-  status.className = "sprite-sheet-input__status";
-  status.setAttribute("role", "status");
-  status.setAttribute("aria-live", "polite");
+  const statusEl = document.createElement("div");
+  statusEl.className = "sprite-sheet-input__status";
+  statusEl.setAttribute("role", "status");
+  statusEl.setAttribute("aria-live", "polite");
 
   const browserContainer = document.createElement("div");
 
-  panel.append(dropZone, status, browserContainer);
+  panel.append(dropZone, statusEl, browserContainer);
   root.appendChild(panel);
+
+  function renderStaticText(): void {
+    label.textContent = t(
+      "input.spriteSheet.label",
+      "Select a sprite sheet (.sff)",
+    );
+    hint.textContent = t(
+      "input.spriteSheet.dropHint",
+      "…or drag and drop it here",
+    );
+  }
 
   function render(): void {
     dropZone.classList.toggle(
@@ -75,16 +133,16 @@ export function renderSpriteSheetInput(
       phase === "loading",
     );
     picker.disabled = phase === "loading";
-    status.classList.toggle(
+    statusEl.classList.toggle(
       "sprite-sheet-input__status--error",
       phase === "error",
     );
-    status.textContent = statusMessage;
+    statusEl.textContent = formatStatus(status);
   }
 
   async function handleFile(file: File): Promise<void> {
     phase = "loading";
-    statusMessage = "Reading…";
+    status = { kind: "reading" };
     browserContainer.replaceChildren();
     render();
 
@@ -92,7 +150,11 @@ export function renderSpriteSheetInput(
 
     if (result.status === "success") {
       phase = "success";
-      statusMessage = `Loaded ${result.fileName} — ${result.spriteGroups.length} group(s) found.`;
+      status = {
+        kind: "success",
+        fileName: result.fileName,
+        groupCount: result.spriteGroups.length,
+      };
       render();
       renderSpriteBrowser(
         browserContainer,
@@ -108,24 +170,12 @@ export function renderSpriteSheetInput(
     }
 
     phase = "error";
-    statusMessage = errorMessage(result);
+    status = {
+      kind: result.status,
+      fileName: result.fileName,
+      message: result.message,
+    };
     render();
-  }
-
-  function errorMessage(
-    result:
-      | { status: "read-error"; fileName: string; message: string }
-      | { status: "setup-error"; fileName: string; message: string }
-      | { status: "parse-error"; fileName: string; message: string },
-  ): string {
-    switch (result.status) {
-      case "read-error":
-        return `Could not read ${result.fileName}: ${result.message}. Try selecting the file again.`;
-      case "setup-error":
-        return `The sff WASM build isn't available (${result.message}). Run "npm run wasm:download -- <version>" to fetch it, then try again.`;
-      case "parse-error":
-        return `Could not parse ${result.fileName}: ${result.message}. Check that this is a valid .sff file.`;
-    }
   }
 
   picker.addEventListener("change", () => {
@@ -151,5 +201,18 @@ export function renderSpriteSheetInput(
     if (file) void handleFile(file);
   });
 
+  // This view (and the sprite browser it mounts) is only ever mounted once
+  // per app session -- one subscription for its whole lifetime never
+  // accumulates. Re-formats the static chrome and the status text from the
+  // state already held above -- never re-reading/re-decoding the sheet --
+  // so an already-decoded sprite browser and its own status survive a
+  // locale switch untouched. See
+  // .vibe/decisions/009-i18n-integration-approach.md.
+  onLocaleChange(() => {
+    renderStaticText();
+    render();
+  });
+
+  renderStaticText();
   render();
 }

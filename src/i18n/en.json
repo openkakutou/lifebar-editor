@@ -1,0 +1,73 @@
+{
+  "app": {
+    "languageLabel": "Language"
+  },
+  "errors": {
+    "designTokensFailedHeading": "{{title}} failed to load",
+    "designTokensFailedBody": "The design system's tokens stylesheet didn't load. Try reloading the page; if this keeps happening, please report it."
+  },
+  "actions": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "saveExport": "Save / Export",
+    "exportAnyway": "Export anyway"
+  },
+  "elements": {
+    "heading": "Elements ({{count}})",
+    "empty": "No elements found.",
+    "unnamedSection": "(unnamed section)",
+    "noProperties": "This element has no properties.",
+    "spritePrompt": "Load a sprite sheet to assign sprites to this element.",
+    "unsetValue": "(unset)",
+    "badgeNeedsSheet": "Needs a loaded sprite sheet",
+    "badgeInvalidReference": "Has an invalid sprite reference",
+    "invalidReferencePlaceholder": "Invalid reference: {{value}}",
+    "noneOption": "— none —",
+    "spriteOptionLabel": "{{group}}, {{image}} ({{width}}×{{height}})",
+    "spriteMismatch": "\"{{value}}\" does not match any sprite in the loaded sheet."
+  },
+  "input": {
+    "lifebar": {
+      "label": "Select the lifebar file (e.g. fight.def)",
+      "dropHint": "…or drag and drop it here",
+      "reading": "Reading…",
+      "success": "Loaded {{fileName}} — {{count}} section(s) found.",
+      "errorRead": "Could not read {{fileName}}: {{message}}",
+      "errorParse": "Could not parse {{fileName}}: {{message}}"
+    },
+    "spriteSheet": {
+      "label": "Select a sprite sheet (.sff)",
+      "dropHint": "…or drag and drop it here",
+      "reading": "Reading…",
+      "success": "Loaded {{fileName}} — {{count}} group(s) found.",
+      "errorRead": "Could not read {{fileName}}: {{message}}. Try selecting the file again.",
+      "errorSetup": "The sff WASM build isn't available ({{message}}). Run \"npm run wasm:download -- <version>\" to fetch it, then try again.",
+      "errorParse": "Could not parse {{fileName}}: {{message}}. Check that this is a valid .sff file."
+    }
+  },
+  "wizard": {
+    "heading": "Start a New Lifebar",
+    "blankButton": "Blank Lifebar",
+    "discardConfirm": "You have unsaved changes to the current lifebar. Starting a new lifebar will discard them. Continue?",
+    "templates": {
+      "basic-life-power": "Basic Life/Power Bars"
+    }
+  },
+  "saveExport": {
+    "saved": "Saved {{fileName}}."
+  },
+  "validation": {
+    "semicolonBlocking": "\"{{key}}\" contains a \";\", which this file format can't store in a value.",
+    "spriteInvalid": "\"{{key}}\" does not match any sprite in the loaded sheet.",
+    "spriteUnverified": "\"{{key}}\" can't be verified -- load a sprite sheet first."
+  },
+  "sprites": {
+    "browserHeading": "Sprites ({{count}})",
+    "empty": "No sprites found.",
+    "groupToggle": "Group {{index}} ({{count}})",
+    "thumbLabel": "{{group}}, {{image}} — {{width}}×{{height}}"
+  },
+  "shortcuts": {
+    "sectionLabel": "Keyboard Shortcuts"
+  }
+}

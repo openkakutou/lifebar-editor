@@ -1,0 +1,73 @@
+{
+  "app": {
+    "languageLabel": "Langue"
+  },
+  "errors": {
+    "designTokensFailedHeading": "{{title}} n'a pas pu se charger",
+    "designTokensFailedBody": "La feuille de style des jetons de conception n'a pas pu se charger. Essayez de recharger la page ; si cela persiste, merci de le signaler."
+  },
+  "actions": {
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "saveExport": "Enregistrer / Exporter",
+    "exportAnyway": "Exporter quand même"
+  },
+  "elements": {
+    "heading": "Éléments ({{count}})",
+    "empty": "Aucun élément trouvé.",
+    "unnamedSection": "(section sans nom)",
+    "noProperties": "Cet élément n'a aucune propriété.",
+    "spritePrompt": "Chargez une feuille de sprites pour assigner des sprites à cet élément.",
+    "unsetValue": "(non défini)",
+    "badgeNeedsSheet": "Nécessite une feuille de sprites chargée",
+    "badgeInvalidReference": "Contient une référence de sprite invalide",
+    "invalidReferencePlaceholder": "Référence invalide : {{value}}",
+    "noneOption": "— aucun —",
+    "spriteOptionLabel": "{{group}}, {{image}} ({{width}}×{{height}})",
+    "spriteMismatch": "« {{value}} » ne correspond à aucun sprite de la feuille chargée."
+  },
+  "input": {
+    "lifebar": {
+      "label": "Sélectionnez le fichier de barre de vie (par ex. fight.def)",
+      "dropHint": "…ou glissez-déposez-le ici",
+      "reading": "Lecture…",
+      "success": "{{fileName}} chargé — {{count}} section(s) trouvée(s).",
+      "errorRead": "Impossible de lire {{fileName}} : {{message}}",
+      "errorParse": "Impossible d'analyser {{fileName}} : {{message}}"
+    },
+    "spriteSheet": {
+      "label": "Sélectionnez une feuille de sprites (.sff)",
+      "dropHint": "…ou glissez-déposez-la ici",
+      "reading": "Lecture…",
+      "success": "{{fileName}} chargé — {{count}} groupe(s) trouvé(s).",
+      "errorRead": "Impossible de lire {{fileName}} : {{message}}. Essayez de sélectionner à nouveau le fichier.",
+      "errorSetup": "Le module WASM sff n'est pas disponible ({{message}}). Exécutez « npm run wasm:download -- <version> » pour le récupérer, puis réessayez.",
+      "errorParse": "Impossible d'analyser {{fileName}} : {{message}}. Vérifiez qu'il s'agit d'un fichier .sff valide."
+    }
+  },
+  "wizard": {
+    "heading": "Démarrer une nouvelle barre de vie",
+    "blankButton": "Barre de vie vierge",
+    "discardConfirm": "Vous avez des modifications non enregistrées sur la barre de vie actuelle. Démarrer une nouvelle barre de vie les supprimera. Continuer ?",
+    "templates": {
+      "basic-life-power": "Barres de vie/puissance de base"
+    }
+  },
+  "saveExport": {
+    "saved": "{{fileName}} enregistré."
+  },
+  "validation": {
+    "semicolonBlocking": "« {{key}} » contient un « ; », que ce format de fichier ne peut pas stocker dans une valeur.",
+    "spriteInvalid": "« {{key}} » ne correspond à aucun sprite de la feuille chargée.",
+    "spriteUnverified": "« {{key}} » ne peut pas être vérifié -- chargez d'abord une feuille de sprites."
+  },
+  "sprites": {
+    "browserHeading": "Sprites ({{count}})",
+    "empty": "Aucun sprite trouvé.",
+    "groupToggle": "Groupe {{index}} ({{count}})",
+    "thumbLabel": "{{group}}, {{image}} — {{width}}×{{height}}"
+  },
+  "shortcuts": {
+    "sectionLabel": "Raccourcis clavier"
+  }
+}

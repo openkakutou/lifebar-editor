@@ -228,3 +228,47 @@ The fix: `shortcuts-panel-section.ts` returns the mounted element, and
 setter's own cleanup path — before discarding it on the next render. The
 `addEventListener`/`removeEventListener`-count test above is what pins this
 against regressing.
+
+## Localization (backlog item 009)
+
+`i18n.test.ts` exercises the real `web-ui-kit` i18next instance (not a
+mock): it asserts the fallback path (the interpolated `defaultValue`,
+verbatim, before `initAppI18n` resolves), a real translation once
+initialized, a real French translation after `changeLanguage("fr")`, and
+that this app's own `localStorage` key is used instead of `web-ui-kit`'s
+shared default. Every other module's own test file adds a small
+"localization" describe block calling `initAppI18n()` directly, rather than
+mocking `i18n.ts` — the same "test the real thing, not a stand-in for it"
+approach `bridge.test.ts` and `undo-redo-controls.test.ts` already apply to
+the WASM module and `CommandStack`. The large majority of existing
+assertions needed no change at all: every call site's `defaultValue`
+matches its `en.json` entry character for character, so a test that never
+calls `initAppI18n` still sees the exact same English text as before this
+feature landed.
+
+Live-switching is tested per module against the specific state a naive
+full re-render would destroy: `lifebar-file-input-view.test.ts` and
+`sprite-sheet-input-view.test.ts` assert an already-shown success status
+re-translates without re-reading the file; `sprite-browser.test.ts` asserts
+an already-decoded thumbnail's label re-translates without a second decode
+call; `save-export.test.ts` asserts a pending "export anyway" warning and
+an already-shown "saved" status re-translate without re-exporting;
+`shortcuts-panel-section.test.ts` asserts a manually collapsed panel stays
+collapsed across a switch; `main.test.ts` asserts an expanded
+elements-editor section stays expanded, and that a locale switch never
+attaches a second `"change"` listener onto the shared shortcut manager.
+
+Real-browser verification (Playwright) drove the full feature against a
+live dev server with the browser context locale forced to `en-US` (a
+headless Chromium's own default locale isn't guaranteed to be English and
+was observed to resolve to French in this sandbox — the same environment
+quirk `web-ui-kit`'s own test suite documents): confirmed the locale
+switcher's initial "Language" label and English button text, switched to
+French and confirmed every visible label (including the file inputs, the
+wizard, and the "Keyboard Shortcuts" panel) translated instantly with no
+page reload while the app's own brand name stayed "Lifebar Editor",
+loaded a real lifebar file and confirmed the elements editor's heading
+translated too, expanded a section and confirmed it stayed expanded across
+a switch back to English, then performed a real full page reload after
+switching to French and confirmed the language persisted — zero console
+errors.

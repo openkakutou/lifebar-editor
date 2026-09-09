@@ -41,6 +41,15 @@ body {
 }
 
 /*
+ * The locale switcher (backlog item 009) sits at the toolbar's far end,
+ * after Undo/Redo -- `.app-undo-redo`'s own `margin-inline-start: auto`
+ * already pushes both it and this switcher there together.
+ */
+.locale-switcher {
+  margin-inline-start: var(--wuik-space-2);
+}
+
+/*
  * The "design tokens failed to load" error state deliberately avoids every
  * `--wuik-*` token and component: it is the one screen guaranteed to
  * render when the design system itself failed to load, so it must not

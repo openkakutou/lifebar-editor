@@ -4,6 +4,7 @@
 // .vibe/decisions/002-lifebar-parser-data-model-and-error-scope.md for why
 // this is a single-slot model, unlike character-editor's accumulating
 // multi-slot file input.
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import type { LifebarDocument } from "../lifebar/document.ts";
 import {
   type LifebarFileInputOptions,
@@ -18,6 +19,56 @@ export interface LifebarFileInputViewOptions {
 }
 
 /**
+ * What the status line currently shows -- a small tagged description of the
+ * situation and its raw parameters, not pre-formatted text. Kept as data
+ * (not a string) so a locale change can re-format it in the new language
+ * without re-reading/re-parsing the file that produced it. See
+ * .vibe/decisions/009-i18n-integration-approach.md.
+ */
+type Status =
+  | { kind: "idle" }
+  | { kind: "reading" }
+  | { kind: "success"; fileName: string; sectionCount: number }
+  | { kind: "read-error"; fileName: string; message: string }
+  | { kind: "parse-error"; fileName: string; message: string };
+
+function formatStatus(status: Status): string {
+  switch (status.kind) {
+    case "idle":
+      return "";
+    case "reading":
+      return t("input.lifebar.reading", "Reading…");
+    case "success":
+      return t(
+        "input.lifebar.success",
+        "Loaded {{fileName}} — {{count}} section(s) found.",
+        {
+          fileName: status.fileName,
+          count: String(status.sectionCount),
+        },
+      );
+    case "read-error":
+      return t(
+        "input.lifebar.errorRead",
+        "Could not read {{fileName}}: {{message}}",
+        {
+          fileName: status.fileName,
+          message: status.message,
+        },
+      );
+    case "parse-error":
+      return t(
+        "input.lifebar.errorParse",
+        "Could not parse {{fileName}}: {{message}}",
+        {
+          fileName: status.fileName,
+          message: status.message,
+        },
+      );
+  }
+}
+
+/**
  * Renders the lifebar file input into `root`, replacing its previous
  * content. The native file input stays a first-class, fully keyboard- and
  * screen-reader-operable control alongside the drag-and-drop zone.
@@ -29,7 +80,7 @@ export function renderLifebarFileInput(
   root.replaceChildren();
 
   let phase: "idle" | "loading" | "success" | "error" = "idle";
-  let statusMessage = "";
+  let status: Status = { kind: "idle" };
 
   const panel = document.createElement("wuik-panel");
   panel.className = "lifebar-input";
@@ -40,7 +91,6 @@ export function renderLifebarFileInput(
   const label = document.createElement("label");
   label.className = "lifebar-input__label";
   label.htmlFor = "lifebar-file-picker";
-  label.textContent = "Select the lifebar file (e.g. fight.def)";
 
   const picker = document.createElement("input");
   picker.type = "file";
@@ -49,17 +99,24 @@ export function renderLifebarFileInput(
 
   const hint = document.createElement("p");
   hint.className = "lifebar-input__hint";
-  hint.textContent = "…or drag and drop it here";
 
   dropZone.append(label, picker, hint);
 
-  const status = document.createElement("div");
-  status.className = "lifebar-input__status";
-  status.setAttribute("role", "status");
-  status.setAttribute("aria-live", "polite");
+  const statusEl = document.createElement("div");
+  statusEl.className = "lifebar-input__status";
+  statusEl.setAttribute("role", "status");
+  statusEl.setAttribute("aria-live", "polite");
 
-  panel.append(dropZone, status);
+  panel.append(dropZone, statusEl);
   root.appendChild(panel);
+
+  function renderStaticText(): void {
+    label.textContent = t(
+      "input.lifebar.label",
+      "Select the lifebar file (e.g. fight.def)",
+    );
+    hint.textContent = t("input.lifebar.dropHint", "…or drag and drop it here");
+  }
 
   function render(): void {
     dropZone.classList.toggle(
@@ -67,30 +124,37 @@ export function renderLifebarFileInput(
       phase === "loading",
     );
     picker.disabled = phase === "loading";
-    status.classList.toggle("lifebar-input__status--error", phase === "error");
-    status.textContent = statusMessage;
+    statusEl.classList.toggle(
+      "lifebar-input__status--error",
+      phase === "error",
+    );
+    statusEl.textContent = formatStatus(status);
   }
 
   async function handleFile(file: File): Promise<void> {
     phase = "loading";
-    statusMessage = "Reading…";
+    status = { kind: "reading" };
     render();
 
     const result = await loadLifebarFromFile(file, options.fileOptions);
 
     if (result.status === "success") {
       phase = "success";
-      statusMessage = `Loaded ${result.fileName} — ${result.document.sections.length} section(s) found.`;
+      status = {
+        kind: "success",
+        fileName: result.fileName,
+        sectionCount: result.document.sections.length,
+      };
       render();
       options.onLoaded(result.document, result.fileName);
       return;
     }
 
     phase = "error";
-    statusMessage =
+    status =
       result.status === "read-error"
-        ? `Could not read ${file.name}: ${result.message}`
-        : `Could not parse ${file.name}: ${result.message}`;
+        ? { kind: "read-error", fileName: file.name, message: result.message }
+        : { kind: "parse-error", fileName: file.name, message: result.message };
     render();
   }
 
@@ -117,5 +181,18 @@ export function renderLifebarFileInput(
     if (file) void handleFile(file);
   });
 
+  // This view is only ever mounted once per app session (see main.ts's
+  // renderApp) -- one subscription for its whole lifetime never
+  // accumulates. Re-formats whatever is currently shown (the static
+  // chrome, the status text) from the state already held above -- never
+  // re-reading/re-parsing the file -- so an already-loaded file's status
+  // survives a locale switch untouched. See
+  // .vibe/decisions/009-i18n-integration-approach.md.
+  onLocaleChange(() => {
+    renderStaticText();
+    render();
+  });
+
+  renderStaticText();
   render();
 }

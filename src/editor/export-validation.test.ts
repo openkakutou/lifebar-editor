@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { initAppI18n } from "../i18n/i18n.ts";
 import type { LifebarDocument } from "../lifebar/document.ts";
 import type { SpriteGroup } from "../wasm/types.ts";
 import { findExportProblems } from "./export-validation.ts";
@@ -111,5 +112,26 @@ describe("findExportProblems", () => {
 
     expect(problems.map((p) => p.sectionName)).toEqual(["Info", "Life Bar 0"]);
     expect(problems.map((p) => p.severity)).toEqual(["blocking", "warning"]);
+  });
+
+  describe("localization (backlog item 009)", () => {
+    afterEach(async () => {
+      window.localStorage.clear();
+    });
+
+    it("translates a blocking-semicolon message into the active locale", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("fr");
+
+      const document = documentWith([
+        { key: "displayname", value: "Nice; try" },
+      ]);
+      const problems = findExportProblems(document, null);
+
+      expect(problems[0].message).toContain("displayname");
+      expect(problems[0].message).toContain("«");
+
+      await instance.changeLanguage("en");
+    });
   });
 });

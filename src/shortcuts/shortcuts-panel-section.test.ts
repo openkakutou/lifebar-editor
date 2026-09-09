@@ -1,5 +1,6 @@
 import { ShortcutManager } from "@openkakutou/web-ui-kit";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { initAppI18n } from "../i18n/i18n.ts";
 import { renderShortcutsPanelSection } from "./shortcuts-panel-section.ts";
 
 function memoryStorage(): Storage {
@@ -111,5 +112,51 @@ describe("renderShortcutsPanelSection", () => {
     expect(panelEl).toBe(root.querySelector("wuik-shortcuts-panel"));
     // biome-ignore lint/suspicious/noExplicitAny: reading a custom element's own JS property, not part of any typed DOM interface.
     expect((panelEl as any).manager).toBe(manager);
+  });
+});
+
+describe("renderShortcutsPanelSection — localization (backlog item 009)", () => {
+  afterEach(async () => {
+    window.localStorage.clear();
+  });
+
+  it("renders the header label translated into the active locale", async () => {
+    const instance = await initAppI18n();
+    await instance.changeLanguage("fr");
+
+    const manager = newManager();
+    const root = document.createElement("div");
+    renderShortcutsPanelSection(root, manager);
+
+    expect(
+      root.querySelector(".shortcuts-panel-section__toggle")?.textContent,
+    ).toBe("Raccourcis clavier");
+
+    await instance.changeLanguage("en");
+  });
+
+  it("re-translates the header label in place, keeping a manually collapsed state, on a locale change", async () => {
+    const instance = await initAppI18n();
+    await instance.changeLanguage("en");
+
+    const manager = newManager();
+    const root = document.createElement("div");
+    renderShortcutsPanelSection(root, manager);
+    root
+      .querySelector<HTMLElement>(".shortcuts-panel-section__toggle")
+      ?.click();
+    const body = root.querySelector<HTMLElement>(
+      ".shortcuts-panel-section__body",
+    );
+    expect(body?.hidden).toBe(true);
+
+    await instance.changeLanguage("fr");
+
+    expect(
+      root.querySelector(".shortcuts-panel-section__toggle")?.textContent,
+    ).toBe("Raccourcis clavier");
+    expect(body?.hidden).toBe(true);
+
+    await instance.changeLanguage("en");
   });
 });

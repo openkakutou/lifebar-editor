@@ -2,6 +2,7 @@ import "@openkakutou/web-ui-kit/tokens.css";
 import "@openkakutou/web-ui-kit";
 import "./style.css";
 import type { WuikShortcutsPanelElement } from "@openkakutou/web-ui-kit";
+import type { WuikLocaleSwitcherElement } from "@openkakutou/web-ui-kit";
 import { commandStack } from "./document/command-stack-store.ts";
 import {
   type LifebarEditorDocument,
@@ -15,11 +16,15 @@ import {
 import { renderElementsEditor } from "./editor/elements-editor.ts";
 import { renderSaveExport } from "./editor/save-export.ts";
 import { renderUndoRedoControls } from "./editor/undo-redo-controls.ts";
+import { getI18n, initAppI18n, onLocaleChange, t } from "./i18n/i18n.ts";
 import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
 import { renderSpriteSheetInput } from "./input/sprite-sheet-input-view.ts";
 import { appShortcutManager } from "./shortcuts/app-shortcut-manager.ts";
 import { handleAppShortcutKeydown } from "./shortcuts/app-shortcuts.ts";
-import { bindShortcutLabel } from "./shortcuts/shortcut-label.ts";
+import {
+  bindShortcutLabel,
+  formatShortcutTitle,
+} from "./shortcuts/shortcut-label.ts";
 import { renderShortcutsPanelSection } from "./shortcuts/shortcuts-panel-section.ts";
 import { appVersion } from "./version.ts";
 import { renderNewLifebarWizard } from "./wizard/new-lifebar-wizard.ts";
@@ -53,6 +58,18 @@ let currentShortcutLabelUnbinds: Array<() => void> = [];
  */
 let currentShortcutsPanelElement: WuikShortcutsPanelElement | undefined;
 
+/**
+ * `renderApp` is only ever really invoked once per page (from `mount()`),
+ * but tests call it repeatedly on the same or a fresh root -- torn down at
+ * the top of every call, before a fresh one is made, so a locale-change
+ * subscription from a previous call never accumulates or fires against
+ * content no longer on the page. Mirrors `lifebar-viewer-web`'s own
+ * equivalent (`.vibe/decisions/009-i18n-integration-approach.md`).
+ */
+let currentUnsubscribeLocaleChange: (() => void) | undefined;
+
+// The app's own brand name -- a proper noun, deliberately never translated
+// (see .vibe/decisions/009-i18n-integration-approach.md).
 const APP_TITLE = "Lifebar Editor";
 
 /**
@@ -124,10 +141,15 @@ export function renderApp(
     currentShortcutsPanelElement.manager = undefined;
     currentShortcutsPanelElement = undefined;
   }
+  currentUnsubscribeLocaleChange?.();
+  currentUnsubscribeLocaleChange = undefined;
 
   const tokensLoaded = options.designTokensLoaded ?? designTokensLoaded;
   if (!tokensLoaded()) {
     renderDesignTokensError(root);
+    currentUnsubscribeLocaleChange = onLocaleChange(() =>
+      renderDesignTokensError(root),
+    );
     return;
   }
 
@@ -153,16 +175,24 @@ export function renderApp(
       undoRedoControls.undoButton,
       appShortcutManager,
       "undo",
-      "Undo",
+      t("actions.undo", "Undo"),
     ),
     bindShortcutLabel(
       undoRedoControls.redoButton,
       appShortcutManager,
       "redo",
-      "Redo",
+      t("actions.redo", "Redo"),
     ),
   );
-  toolbar.append(title, versionText, undoRedoSection);
+
+  const localeSwitcher = document.createElement(
+    "wuik-locale-switcher",
+  ) as unknown as WuikLocaleSwitcherElement;
+  localeSwitcher.className = "locale-switcher";
+  localeSwitcher.setAttribute("label", t("app.languageLabel", "Language"));
+  localeSwitcher.i18n = getI18n();
+
+  toolbar.append(title, versionText, undoRedoSection, localeSwitcher);
   shell.appendChild(toolbar);
 
   const main = document.createElement("main");
@@ -227,23 +257,30 @@ export function renderApp(
   main.appendChild(lifebarSection);
 
   const newLifebarWizardSection = document.createElement("div");
-  renderNewLifebarWizard(newLifebarWizardSection, {
-    onCreated: (doc: LifebarEditorDocument) => {
-      commandStack.clear();
-      setLifebarDocument(doc);
-      refreshElementsEditor();
-      undoRedoControls.refresh();
-      // The wizard commits immediately, with no second confirm/preview
-      // screen, so moving focus into the newly mounted elements editor is
-      // the only positive confirmation a keyboard/screen-reader user gets
-      // that creation actually landed — same reasoning as `stage-editor`'s
-      // own New Stage Wizard (.vibe/decisions/006). A no-op for a blank
-      // lifebar, which has no section to focus yet.
-      elementsSection
-        .querySelector<HTMLElement>(".elements-editor__section-toggle")
-        ?.focus();
-    },
-  });
+  // No internal state of its own (unlike the file inputs/sprite browser/
+  // save-export) -- a full re-render on a locale change (see the
+  // `onLocaleChange` subscription below) is cheap and loses nothing. See
+  // .vibe/decisions/009-i18n-integration-approach.md.
+  const refreshWizard = (): void => {
+    renderNewLifebarWizard(newLifebarWizardSection, {
+      onCreated: (doc: LifebarEditorDocument) => {
+        commandStack.clear();
+        setLifebarDocument(doc);
+        refreshElementsEditor();
+        undoRedoControls.refresh();
+        // The wizard commits immediately, with no second confirm/preview
+        // screen, so moving focus into the newly mounted elements editor is
+        // the only positive confirmation a keyboard/screen-reader user gets
+        // that creation actually landed — same reasoning as `stage-editor`'s
+        // own New Stage Wizard (.vibe/decisions/006). A no-op for a blank
+        // lifebar, which has no section to focus yet.
+        elementsSection
+          .querySelector<HTMLElement>(".elements-editor__section-toggle")
+          ?.focus();
+      },
+    });
+  };
+  refreshWizard();
   main.appendChild(newLifebarWizardSection);
 
   const spriteSheetSection = document.createElement("div");
@@ -264,7 +301,7 @@ export function renderApp(
       saveExportHandle.button,
       appShortcutManager,
       "save-export",
-      "Save / Export",
+      t("actions.saveExport", "Save / Export"),
     ),
   );
   main.appendChild(saveExportSection);
@@ -288,24 +325,84 @@ export function renderApp(
   shell.appendChild(main);
 
   root.appendChild(shell);
+
+  // Live locale switching (backlog item 009): re-translates every piece of
+  // "chrome" main.ts owns directly -- the switcher's own label, the
+  // Undo/Redo/Save-Export buttons' text and shortcut-hint title/
+  // aria-keyshortcuts -- and re-invokes the elements editor's own existing
+  // refresh closure (already reused for every other data-change trigger),
+  // which preserves the current expanded-sections Set untouched. Recomputing
+  // the shortcut hint directly here (rather than re-calling
+  // `bindShortcutLabel`) avoids attaching a second "change" listener onto
+  // the shared, long-lived `appShortcutManager` on every language switch --
+  // see .vibe/decisions/009-i18n-integration-approach.md. Each view with its
+  // own session-important state (the file inputs, the sprite browser,
+  // Save/Export's own status text, the shortcuts panel's collapsed state)
+  // retranslates itself, from its own internal `onLocaleChange`
+  // subscription, without main.ts's help.
+  const applyShortcutHint = (
+    element: HTMLElement,
+    actionId: string,
+    baseLabelKey: string,
+    baseLabelDefault: string,
+  ): void => {
+    const key = appShortcutManager.getBinding(actionId);
+    element.title = formatShortcutTitle(t(baseLabelKey, baseLabelDefault), key);
+  };
+  currentUnsubscribeLocaleChange = onLocaleChange(() => {
+    localeSwitcher.setAttribute("label", t("app.languageLabel", "Language"));
+    undoRedoControls.undoButton.textContent = t("actions.undo", "Undo");
+    undoRedoControls.redoButton.textContent = t("actions.redo", "Redo");
+    applyShortcutHint(
+      undoRedoControls.undoButton,
+      "undo",
+      "actions.undo",
+      "Undo",
+    );
+    applyShortcutHint(
+      undoRedoControls.redoButton,
+      "redo",
+      "actions.redo",
+      "Redo",
+    );
+    applyShortcutHint(
+      saveExportHandle.button,
+      "save-export",
+      "actions.saveExport",
+      "Save / Export",
+    );
+    refreshElementsEditor();
+    refreshWizard();
+  });
 }
 
 /**
  * Deliberately styled with no `web-ui-kit` tokens or custom elements: this
  * renders exactly in the scenario where those failed to load, so it must
- * stay visible without depending on them.
+ * stay visible without depending on them. Re-invoked (replacing its own
+ * previous content) on a locale change, so its text stays live too even
+ * though no `<wuik-locale-switcher>` is available in this degraded state --
+ * the browser-detected/persisted locale still applies via `t()`.
  */
 function renderDesignTokensError(root: HTMLElement): void {
+  root.replaceChildren();
+
   const container = document.createElement("div");
   container.className = "design-tokens-error";
 
   const heading = document.createElement("h1");
-  heading.textContent = `${APP_TITLE} failed to load`;
+  heading.textContent = t(
+    "errors.designTokensFailedHeading",
+    "{{title}} failed to load",
+    { title: APP_TITLE },
+  );
   container.appendChild(heading);
 
   const body = document.createElement("p");
-  body.textContent =
-    "The design system's tokens stylesheet didn't load. Try reloading the page; if this keeps happening, please report it.";
+  body.textContent = t(
+    "errors.designTokensFailedBody",
+    "The design system's tokens stylesheet didn't load. Try reloading the page; if this keeps happening, please report it.",
+  );
   container.appendChild(body);
 
   root.appendChild(container);
@@ -320,8 +417,16 @@ function renderDesignTokensError(root: HTMLElement): void {
  * `load` event is spec-guaranteed to fire only after every stylesheet
  * referenced at parse time has settled, so waiting for it (a no-op if it
  * has already fired) makes the probe accurate.
+ *
+ * `initAppI18n` is awaited here, before the very first `renderApp` call --
+ * never inside `renderApp` itself, which stays synchronous so tests can
+ * keep calling it directly with deterministic English defaults (see
+ * .vibe/decisions/009-i18n-integration-approach.md). This is also why the
+ * real app never flashes English before a persisted locale resolves: the
+ * first paint already has the right language.
  */
-function mount(): void {
+async function mount(): Promise<void> {
+  await initAppI18n();
   const app = document.querySelector<HTMLDivElement>("#app");
   if (app) {
     renderApp(app, appVersion);
@@ -329,7 +434,7 @@ function mount(): void {
 }
 
 if (document.readyState === "complete") {
-  mount();
+  void mount();
 } else {
-  window.addEventListener("load", mount, { once: true });
+  window.addEventListener("load", () => void mount(), { once: true });
 }

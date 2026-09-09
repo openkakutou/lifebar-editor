@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LifebarEditorDocument } from "../document/lifebar-document-store.ts";
+import { initAppI18n } from "../i18n/i18n.ts";
 import { renderNewLifebarWizard } from "./new-lifebar-wizard.ts";
 
 function blankButton(root: HTMLElement): HTMLElement {
@@ -127,5 +128,29 @@ describe("renderNewLifebarWizard", () => {
     expect(second.document.sections[0].entries).not.toEqual(
       first.document.sections[0].entries,
     );
+  });
+});
+
+describe("renderNewLifebarWizard — localization (backlog item 009)", () => {
+  afterEach(async () => {
+    window.localStorage.clear();
+  });
+
+  it("renders the heading, buttons, and template label translated into the active locale", async () => {
+    const instance = await initAppI18n();
+    await instance.changeLanguage("fr");
+
+    const root = document.createElement("div");
+    renderNewLifebarWizard(root, { onCreated: vi.fn() });
+
+    expect(root.querySelector("h2")?.textContent).toBe(
+      "Démarrer une nouvelle barre de vie",
+    );
+    expect(blankButton(root).textContent).toBe("Barre de vie vierge");
+    expect(templateButton(root).textContent).toBe(
+      "Barres de vie/puissance de base",
+    );
+
+    await instance.changeLanguage("en");
   });
 });

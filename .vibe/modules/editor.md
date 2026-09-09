@@ -7,4 +7,4 @@
 successful export (never on a blocked one) — item 006's New Lifebar
 Wizard reads that same store's `hasUnsavedLifebarChanges()` for its own
 discard guard, so a save clears that warning without a reload.
-**Depends on:** `modules/lifebar.md` (`LifebarDocument`/`LifebarSection` types, `serializeLifebar`), `modules/wasm.md` (`SpriteGroup`/`Sprite` types), `modules/document.md` (the document/sprite-sheet stores `save-export.ts` reads from, and `undo-redo-controls.ts`'s default `CommandStack`)
+**Depends on:** `modules/lifebar.md` (`LifebarDocument`/`LifebarSection` types, `serializeLifebar`), `modules/wasm.md` (`SpriteGroup`/`Sprite` types), `modules/document.md` (the document/sprite-sheet stores `save-export.ts` reads from, and `undo-redo-controls.ts`'s default `CommandStack`), `modules/i18n.md` (`elements-editor.ts`'s and `export-validation.ts`'s own text; `save-export.ts`'s button/status text, additionally kept live across a locale change via its own `onLocaleChange` subscription and a small stored status descriptor)

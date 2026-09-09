@@ -11,6 +11,7 @@
 //   invalid, or unverifiable because no sprite sheet is loaded. The
 //   exported text itself stays intact and reloadable either way, so this
 //   is safe to override.
+import { t } from "../i18n/i18n.ts";
 import type { LifebarDocument } from "../lifebar/document.ts";
 import type { SpriteGroup } from "../wasm/types.ts";
 import {
@@ -38,7 +39,11 @@ export function findExportProblems(
       if (entry.value.includes(";")) {
         problems.push({
           sectionName: section.name,
-          message: `"${entry.key}" contains a ";", which this file format can't store in a value.`,
+          message: t(
+            "validation.semicolonBlocking",
+            '"{{key}}" contains a ";", which this file format can\'t store in a value.',
+            { key: entry.key },
+          ),
           severity: "blocking",
         });
         continue;
@@ -50,13 +55,21 @@ export function findExportProblems(
       if (status.kind === "invalid") {
         problems.push({
           sectionName: section.name,
-          message: `"${entry.key}" does not match any sprite in the loaded sheet.`,
+          message: t(
+            "validation.spriteInvalid",
+            '"{{key}}" does not match any sprite in the loaded sheet.',
+            { key: entry.key },
+          ),
           severity: "warning",
         });
       } else if (status.kind === "no-sheet") {
         problems.push({
           sectionName: section.name,
-          message: `"${entry.key}" can't be verified -- load a sprite sheet first.`,
+          message: t(
+            "validation.spriteUnverified",
+            '"{{key}}" can\'t be verified -- load a sprite sheet first.',
+            { key: entry.key },
+          ),
           severity: "warning",
         });
       }

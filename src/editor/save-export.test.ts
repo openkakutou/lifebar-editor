@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LifebarEditorDocument } from "../document/lifebar-document-store.ts";
 import type { SffSpriteSheetDocument } from "../document/sff-sprite-sheet-store.ts";
+import { initAppI18n } from "../i18n/i18n.ts";
 import type { LifebarDocument } from "../lifebar/document.ts";
 import type { ExportProblem } from "./export-validation.ts";
 import { renderSaveExport } from "./save-export.ts";
@@ -269,5 +270,83 @@ describe("renderSaveExport", () => {
     expect(handle.button).toBe(
       root.querySelector('[data-action="save-export"]'),
     );
+  });
+});
+
+describe("renderSaveExport — live locale switching (backlog item 009)", () => {
+  afterEach(async () => {
+    window.localStorage.clear();
+  });
+
+  it("renders the button translated into the active locale", async () => {
+    const instance = await initAppI18n();
+    await instance.changeLanguage("fr");
+
+    const root = document.createElement("div");
+    renderSaveExport(root, { getLifebarDocument: () => lifebarDocument() });
+
+    expect(root.querySelector('[data-action="save-export"]')?.textContent).toBe(
+      "Enregistrer / Exporter",
+    );
+
+    await instance.changeLanguage("en");
+  });
+
+  it("re-translates the button and an already-shown 'saved' status in place, without re-exporting", async () => {
+    const instance = await initAppI18n();
+    await instance.changeLanguage("en");
+
+    const root = document.createElement("div");
+    const doc = lifebarDocument({ fileName: "arena.def" });
+    const triggerDownload = vi.fn();
+    renderSaveExport(root, {
+      getLifebarDocument: () => doc,
+      findExportProblems: () => [],
+      serializeLifebar: () => "[Info]\nname = x\n",
+      triggerDownload,
+    });
+
+    click(root, '[data-action="save-export"]');
+    expect(triggerDownload).toHaveBeenCalledTimes(1);
+
+    await instance.changeLanguage("fr");
+
+    expect(root.querySelector('[data-action="save-export"]')?.textContent).toBe(
+      "Enregistrer / Exporter",
+    );
+    expect(root.querySelector(".save-export__status")?.textContent).toBe(
+      "arena.def enregistré.",
+    );
+    // Re-translating never re-triggers the export.
+    expect(triggerDownload).toHaveBeenCalledTimes(1);
+
+    await instance.changeLanguage("en");
+  });
+
+  it("re-translates the 'export anyway' button label in place while a warning is pending", async () => {
+    const instance = await initAppI18n();
+    await instance.changeLanguage("en");
+
+    const root = document.createElement("div");
+    renderSaveExport(root, {
+      getLifebarDocument: () => lifebarDocument(),
+      findExportProblems: () => [
+        { sectionName: "Info", message: "unresolved", severity: "warning" },
+      ],
+      triggerDownload: vi.fn(),
+    });
+
+    click(root, '[data-action="save-export"]');
+    expect(
+      root.querySelector('[data-action="export-anyway"]')?.textContent,
+    ).toBe("Export anyway");
+
+    await instance.changeLanguage("fr");
+
+    expect(
+      root.querySelector('[data-action="export-anyway"]')?.textContent,
+    ).toBe("Exporter quand même");
+
+    await instance.changeLanguage("en");
   });
 });

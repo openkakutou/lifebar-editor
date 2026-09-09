@@ -17,6 +17,7 @@ import {
   type SffSpriteSheetDocument,
   getSffSpriteSheet as defaultGetSffSpriteSheet,
 } from "../document/sff-sprite-sheet-store.ts";
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import { serializeLifebar as defaultSerializeLifebar } from "../lifebar/serialize.ts";
 import {
   type ExportProblem,
@@ -56,6 +57,22 @@ function formatProblems(problems: ExportProblem[]): string {
   return problems.map((p) => `${p.sectionName}: ${p.message}`).join(" ");
 }
 
+/**
+ * What the status line currently shows -- a small tagged description of the
+ * situation, not pre-formatted text. Kept as data (not a string) so a
+ * locale change can re-format it in the new language without re-running
+ * export/validation. `problems`' own `message` text was already translated
+ * at the moment `findExportProblems` produced it -- re-formatting here just
+ * re-joins those same strings, so a problem message itself only picks up a
+ * later language switch on the next click, not retroactively; only the
+ * "saved" template and the "export anyway" button's own label are fully
+ * live. See .vibe/decisions/009-i18n-integration-approach.md.
+ */
+type Status =
+  | { kind: "idle" }
+  | { kind: "problems"; problems: ExportProblem[] }
+  | { kind: "saved"; fileName: string };
+
 export interface SaveExportHandle {
   /**
    * Runs the exact same export this button's own click handler runs (same
@@ -91,19 +108,37 @@ export function renderSaveExport(
 
   const button = document.createElement("wuik-button");
   button.dataset.action = "save-export";
-  button.textContent = "Save / Export";
+  button.textContent = t("actions.saveExport", "Save / Export");
 
   const status = document.createElement("p");
   status.className = "save-export__status";
   status.setAttribute("role", "status");
 
   let exportAnywayButton: HTMLElement | null = null;
+  let currentStatus: Status = { kind: "idle" };
+
+  function applyStatus(): void {
+    switch (currentStatus.kind) {
+      case "idle":
+        status.textContent = "";
+        return;
+      case "problems":
+        status.textContent = formatProblems(currentStatus.problems);
+        return;
+      case "saved":
+        status.textContent = t("saveExport.saved", "Saved {{fileName}}.", {
+          fileName: currentStatus.fileName,
+        });
+        return;
+    }
+  }
 
   const doExport = (doc: LifebarEditorDocument): void => {
     const text = serializeLifebar(doc.document);
     triggerDownload(text, doc.fileName);
     markLifebarDocumentSaved();
-    status.textContent = `Saved ${doc.fileName}.`;
+    currentStatus = { kind: "saved", fileName: doc.fileName };
+    applyStatus();
     exportAnywayButton?.remove();
     exportAnywayButton = null;
   };
@@ -121,17 +156,19 @@ export function renderSaveExport(
     const warnings = problems.filter((p) => p.severity === "warning");
 
     if (blocking.length > 0) {
-      status.textContent = formatProblems(blocking);
+      currentStatus = { kind: "problems", problems: blocking };
+      applyStatus();
       return;
     }
 
     if (warnings.length > 0) {
-      status.textContent = formatProblems(warnings);
+      currentStatus = { kind: "problems", problems: warnings };
+      applyStatus();
 
       const anyway = document.createElement("wuik-button");
       anyway.setAttribute("variant", "secondary");
       anyway.dataset.action = "export-anyway";
-      anyway.textContent = "Export anyway";
+      anyway.textContent = t("actions.exportAnyway", "Export anyway");
       anyway.addEventListener("click", () => doExport(doc));
       exportAnywayButton = anyway;
       root.appendChild(anyway);
@@ -144,6 +181,23 @@ export function renderSaveExport(
   button.addEventListener("click", triggerSaveExport);
 
   root.append(button, status);
+
+  // This view is only ever mounted once per app session (see main.ts's
+  // renderApp) -- one subscription for its whole lifetime never
+  // accumulates. Re-translates the button, the "export anyway" button (if
+  // currently shown), and the status text from `currentStatus` in place --
+  // never re-running export/validation. See
+  // .vibe/decisions/009-i18n-integration-approach.md.
+  onLocaleChange(() => {
+    button.textContent = t("actions.saveExport", "Save / Export");
+    if (exportAnywayButton !== null) {
+      exportAnywayButton.textContent = t(
+        "actions.exportAnyway",
+        "Export anyway",
+      );
+    }
+    applyStatus();
+  });
 
   return { triggerSaveExport, button };
 }

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { initAppI18n } from "../i18n/i18n.ts";
 import type { SpritePixelResult } from "../wasm/bridge.ts";
 import type { SpriteGroup } from "../wasm/types.ts";
 import { renderSpriteBrowser } from "./sprite-browser.ts";
@@ -216,5 +217,55 @@ describe("renderSpriteBrowser", () => {
       null,
       undefined,
     );
+  });
+
+  describe("live locale switching (backlog item 009)", () => {
+    afterEach(async () => {
+      window.localStorage.clear();
+    });
+
+    it("re-translates the heading, group toggles, and an already-decoded thumbnail's label without re-decoding", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const root = document.createElement("div");
+      const resolveSpritePixels = vi
+        .fn()
+        .mockResolvedValue([pixelResult(57, 103), pixelResult(20, 20)]);
+      renderSpriteBrowser(root, spriteGroups(), sffBytes, {
+        resolveSpritePixels,
+        drawPixels: vi.fn(),
+      });
+
+      groupToggle(root, 0).click();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      await instance.changeLanguage("fr");
+
+      expect(root.querySelector("h3")?.textContent).toBe("Sprites (3)");
+      expect(groupToggle(root, 0).textContent).toBe("Groupe 0 (2)");
+      // Re-translating never re-triggers the batch decode.
+      expect(resolveSpritePixels).toHaveBeenCalledOnce();
+      expect(
+        root
+          .querySelectorAll(".sprite-browser__thumb")[0]
+          .querySelector("canvas"),
+      ).not.toBeNull();
+
+      await instance.changeLanguage("en");
+    });
+
+    it("re-translates the empty state", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const root = document.createElement("div");
+      renderSpriteBrowser(root, [], sffBytes);
+
+      await instance.changeLanguage("fr");
+
+      expect(root.textContent).toContain("Aucun sprite");
+
+      await instance.changeLanguage("en");
+    });
   });
 });

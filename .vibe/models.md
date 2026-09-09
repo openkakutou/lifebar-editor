@@ -115,3 +115,14 @@ The three callbacks `handleAppShortcutKeydown` invokes, one per action this app 
 | onRedo | () => void | Not called while focus is in a text field |
 
 Defined in: `src/shortcuts/app-shortcuts.ts`
+
+## Status (per-module locale-retranslation descriptor)
+Not one shared type — the same tagged-variant shape, defined independently in three files, each describing "what this view's status line currently shows" as data (a kind plus its raw parameters) rather than a pre-formatted string, so a locale change (item 009) can re-format it in the new language without re-reading, re-parsing, or re-exporting. See `.vibe/decisions/009-i18n-integration-approach.md`.
+
+| File | Variants |
+|---|---|
+| `src/input/lifebar-file-input-view.ts` | `{kind: "idle"} \| {kind: "reading"} \| {kind: "success", fileName, sectionCount} \| {kind: "read-error", fileName, message} \| {kind: "parse-error", fileName, message}` |
+| `src/input/sprite-sheet-input-view.ts` | Same shape, plus `{kind: "setup-error", fileName, message}` (a WASM-startup failure) and `groupCount` instead of `sectionCount` |
+| `src/editor/save-export.ts` | `{kind: "idle"} \| {kind: "problems", problems: ExportProblem[]} \| {kind: "saved", fileName}` — `problems`' own `message` text was already translated at the moment `findExportProblems` produced it, so re-formatting here re-joins those same strings rather than re-translating them |
+
+Defined in: the three files above

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { initAppI18n } from "../i18n/i18n.ts";
 import type { LifebarDocument } from "../lifebar/document.ts";
 import type { SpriteGroup } from "../wasm/types.ts";
 import { renderElementsEditor } from "./elements-editor.ts";
@@ -373,5 +374,24 @@ describe("renderElementsEditor", () => {
     ) as HTMLSelectElement;
     expect(select).not.toBeNull();
     expect(select.value).toBe("9000,0");
+  });
+});
+
+describe("renderElementsEditor — localization (backlog item 009)", () => {
+  afterEach(async () => {
+    window.localStorage.clear();
+  });
+
+  it("renders the heading translated into the active locale", async () => {
+    const instance = await initAppI18n();
+    await instance.changeLanguage("fr");
+
+    const document_ = doc([{ name: "Life Bar 0", line: 1, entries: [] }]);
+    const root = document.createElement("div");
+    renderElementsEditor(root, document_, null);
+
+    expect(root.querySelector("h3")?.textContent).toBe("Éléments (1)");
+
+    await instance.changeLanguage("en");
   });
 });

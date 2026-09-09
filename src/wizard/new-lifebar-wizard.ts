@@ -9,6 +9,7 @@
 // .vibe/decisions/006-new-lifebar-wizard-defaults-and-unsaved-changes-guard.md.
 import type { LifebarEditorDocument } from "../document/lifebar-document-store.ts";
 import { hasUnsavedLifebarChanges as defaultHasUnsavedChanges } from "../document/lifebar-document-store.ts";
+import { t } from "../i18n/i18n.ts";
 import {
   LIFEBAR_TEMPLATES,
   createBlankLifebar,
@@ -23,8 +24,19 @@ export interface NewLifebarWizardOptions {
   confirmDiscard?: (message: string) => boolean;
 }
 
-const DISCARD_CONFIRM_MESSAGE =
-  "You have unsaved changes to the current lifebar. Starting a new lifebar will discard them. Continue?";
+function discardConfirmMessage(): string {
+  return t(
+    "wizard.discardConfirm",
+    "You have unsaved changes to the current lifebar. Starting a new lifebar will discard them. Continue?",
+  );
+}
+
+/** Translates a bundled template's own label by its stable `id`, falling
+ * back to the template's own English `label` for an id that has no catalog
+ * entry (defensive only -- every bundled template has one). */
+function templateLabel(templateId: string, englishLabel: string): string {
+  return t(`wizard.templates.${templateId}`, englishLabel);
+}
 
 function blankEditorDocument(): LifebarEditorDocument {
   return { fileName: "fight.def", document: createBlankLifebar() };
@@ -52,7 +64,7 @@ export function renderNewLifebarWizard(
     options.confirmDiscard ?? ((message: string) => window.confirm(message));
 
   function createIfConfirmed(build: () => LifebarEditorDocument): void {
-    if (hasUnsavedChanges() && !confirmDiscard(DISCARD_CONFIRM_MESSAGE)) {
+    if (hasUnsavedChanges() && !confirmDiscard(discardConfirmMessage())) {
       return;
     }
     options.onCreated(build());
@@ -62,7 +74,7 @@ export function renderNewLifebarWizard(
   panel.className = "new-lifebar-wizard";
 
   const heading = document.createElement("h2");
-  heading.textContent = "Start a New Lifebar";
+  heading.textContent = t("wizard.heading", "Start a New Lifebar");
   panel.appendChild(heading);
 
   const actions = document.createElement("div");
@@ -70,7 +82,7 @@ export function renderNewLifebarWizard(
 
   const blankButton = document.createElement("wuik-button");
   blankButton.dataset.action = "new-lifebar-blank";
-  blankButton.textContent = "Blank Lifebar";
+  blankButton.textContent = t("wizard.blankButton", "Blank Lifebar");
   blankButton.addEventListener("click", () => {
     createIfConfirmed(blankEditorDocument);
   });
@@ -81,7 +93,7 @@ export function renderNewLifebarWizard(
     templateButton.setAttribute("variant", "secondary");
     templateButton.dataset.action = "new-lifebar-template";
     templateButton.dataset.templateId = template.id;
-    templateButton.textContent = template.label;
+    templateButton.textContent = templateLabel(template.id, template.label);
     templateButton.addEventListener("click", () => {
       createIfConfirmed(() => templateEditorDocument(template.id));
     });

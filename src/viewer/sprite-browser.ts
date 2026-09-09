@@ -8,6 +8,7 @@
 // this: transfer `sffBytes` once, resolve many `[group, image]` pairs) and
 // renders each as its own small canvas, rather than one sprite at a time.
 // See .vibe/decisions/003-sprite-browser-batches-thumbnails-per-group.md.
+import { onLocaleChange, t } from "../i18n/i18n.ts";
 import {
   type SpritePixelResult,
   type WasmBridgeOptions,
@@ -100,35 +101,61 @@ export function renderSpriteBrowser(
   panel.className = "sprite-browser";
 
   const heading = document.createElement("h3");
-  heading.textContent = `Sprites (${totalSpriteCount})`;
+  const renderHeading = (): void => {
+    heading.textContent = t("sprites.browserHeading", "Sprites ({{count}})", {
+      count: String(totalSpriteCount),
+    });
+  };
+  renderHeading();
   panel.appendChild(heading);
 
   if (totalSpriteCount === 0) {
     const empty = document.createElement("p");
     empty.className = "sprite-browser__empty";
-    empty.textContent = "No sprites found.";
+    const renderEmpty = (): void => {
+      empty.textContent = t("sprites.empty", "No sprites found.");
+    };
+    renderEmpty();
     panel.appendChild(empty);
     root.appendChild(panel);
+    // This view is only ever mounted once per app session -- see
+    // .vibe/decisions/009-i18n-integration-approach.md.
+    onLocaleChange(() => {
+      renderHeading();
+      renderEmpty();
+    });
     return;
   }
 
   const list = document.createElement("div");
   list.className = "sprite-browser__list";
 
+  const retranslateGroups: Array<() => void> = [];
   for (const group of spriteGroups) {
-    list.appendChild(
-      buildGroup(
-        group,
-        sffBytesNonNull,
-        resolvePixels,
-        drawPixels,
-        options.bridgeOptions,
-      ),
+    const { element, retranslate } = buildGroup(
+      group,
+      sffBytesNonNull,
+      resolvePixels,
+      drawPixels,
+      options.bridgeOptions,
     );
+    retranslateGroups.push(retranslate);
+    list.appendChild(element);
   }
 
   panel.appendChild(list);
   root.appendChild(panel);
+
+  // This view (including every group it lazily decodes on expand) is only
+  // ever mounted once per app session -- one subscription for its whole
+  // lifetime never accumulates. Re-translates the heading and every group's
+  // own toggle/thumbnail-label text in place, never re-decoding or
+  // resetting which groups are expanded. See
+  // .vibe/decisions/009-i18n-integration-approach.md.
+  onLocaleChange(() => {
+    renderHeading();
+    for (const retranslate of retranslateGroups) retranslate();
+  });
 }
 
 function buildGroup(
@@ -137,7 +164,7 @@ function buildGroup(
   resolvePixels: NonNullable<SpriteBrowserOptions["resolveSpritePixels"]>,
   drawPixels: NonNullable<SpriteBrowserOptions["drawPixels"]>,
   bridgeOptions: WasmBridgeOptions | undefined,
-): HTMLElement {
+): { element: HTMLElement; retranslate: () => void } {
   const groupEl = document.createElement("div");
   groupEl.className = "sprite-browser__group";
 
@@ -145,7 +172,17 @@ function buildGroup(
   toggle.type = "button";
   toggle.className = "sprite-browser__group-toggle";
   toggle.setAttribute("aria-expanded", "false");
-  toggle.textContent = `Group ${group.index} (${group.sprites.length})`;
+  const renderToggle = (): void => {
+    toggle.textContent = t(
+      "sprites.groupToggle",
+      "Group {{index}} ({{count}})",
+      {
+        index: String(group.index),
+        count: String(group.sprites.length),
+      },
+    );
+  };
+  renderToggle();
 
   const grid = document.createElement("div");
   grid.className = "sprite-browser__grid";
@@ -158,6 +195,9 @@ function buildGroup(
   // re-expand just toggles `hidden` back off and shows whatever the
   // (possibly already-resolved, possibly still in-flight) batch produced.
   let mounted = false;
+  // Populated once the group is expanded (mountThumbnails runs); empty
+  // until then, so retranslating an unexpanded group is just its toggle.
+  let retranslateCells: Array<() => void> = [];
 
   toggle.addEventListener("click", () => {
     expanded = !expanded;
@@ -165,7 +205,7 @@ function buildGroup(
     grid.hidden = !expanded;
     if (expanded && !mounted) {
       mounted = true;
-      mountThumbnails(
+      retranslateCells = mountThumbnails(
         group,
         grid,
         sffBytes,
@@ -177,7 +217,13 @@ function buildGroup(
   });
 
   groupEl.append(toggle, grid);
-  return groupEl;
+  return {
+    element: groupEl,
+    retranslate: () => {
+      renderToggle();
+      for (const retranslate of retranslateCells) retranslate();
+    },
+  };
 }
 
 function mountThumbnails(
@@ -187,8 +233,9 @@ function mountThumbnails(
   resolvePixels: NonNullable<SpriteBrowserOptions["resolveSpritePixels"]>,
   drawPixels: NonNullable<SpriteBrowserOptions["drawPixels"]>,
   bridgeOptions: WasmBridgeOptions | undefined,
-): void {
-  const cells = group.sprites.map((sprite) => buildCell(sprite, grid));
+): Array<() => void> {
+  const built = group.sprites.map((sprite) => buildCell(sprite, grid));
+  const cells = built.map((b) => b.cell);
 
   const requests = group.sprites.map((sprite): [number, number] => [
     sprite.group,
@@ -198,9 +245,14 @@ function mountThumbnails(
   resolvePixels(sffBytes, requests, null, bridgeOptions).then((results) => {
     results.forEach((result, i) => fillCell(cells[i], result, drawPixels));
   });
+
+  return built.map((b) => b.retranslate);
 }
 
-function buildCell(sprite: Sprite, grid: HTMLElement): HTMLElement {
+function buildCell(
+  sprite: Sprite,
+  grid: HTMLElement,
+): { cell: HTMLElement; retranslate: () => void } {
   const cell = document.createElement("div");
   cell.className = "sprite-browser__thumb";
 
@@ -210,11 +262,23 @@ function buildCell(sprite: Sprite, grid: HTMLElement): HTMLElement {
 
   const label = document.createElement("span");
   label.className = "sprite-browser__thumb-label";
-  label.textContent = `${sprite.group}, ${sprite.image} — ${sprite.width}×${sprite.height}`;
+  const renderLabel = (): void => {
+    label.textContent = t(
+      "sprites.thumbLabel",
+      "{{group}}, {{image}} — {{width}}×{{height}}",
+      {
+        group: String(sprite.group),
+        image: String(sprite.image),
+        width: String(sprite.width),
+        height: String(sprite.height),
+      },
+    );
+  };
+  renderLabel();
   cell.appendChild(label);
 
   grid.appendChild(cell);
-  return cell;
+  return { cell, retranslate: renderLabel };
 }
 
 function fillCell(

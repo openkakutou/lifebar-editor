@@ -11,6 +11,7 @@
 // is built eagerly (no lazy-mount-on-expand): there is no async decode to
 // gate, only synchronous DOM/state already available from the parsed
 // document and the sheet's already-loaded sprite metadata.
+import { t } from "../i18n/i18n.ts";
 import type { LifebarDocument, LifebarSection } from "../lifebar/document.ts";
 import type { SpriteGroup } from "../wasm/types.ts";
 import {
@@ -67,13 +68,15 @@ export function renderElementsEditor(
   panel.className = "elements-editor";
 
   const heading = document.createElement("h3");
-  heading.textContent = `Elements (${document_.sections.length})`;
+  heading.textContent = t("elements.heading", "Elements ({{count}})", {
+    count: String(document_.sections.length),
+  });
   panel.appendChild(heading);
 
   if (document_.sections.length === 0) {
     const empty = document.createElement("p");
     empty.className = "elements-editor__empty";
-    empty.textContent = "No elements found.";
+    empty.textContent = t("elements.empty", "No elements found.");
     panel.appendChild(empty);
     root.appendChild(panel);
     return;
@@ -120,7 +123,8 @@ function buildSection(
   toggle.setAttribute("aria-expanded", String(expanded));
 
   const label = document.createElement("span");
-  label.textContent = section.name || "(unnamed section)";
+  label.textContent =
+    section.name || t("elements.unnamedSection", "(unnamed section)");
   toggle.appendChild(label);
 
   // A section is flagged on its own (possibly collapsed) header whenever
@@ -140,8 +144,11 @@ function buildSection(
     badge.setAttribute(
       "aria-label",
       spriteGroups === null
-        ? "Needs a loaded sprite sheet"
-        : "Has an invalid sprite reference",
+        ? t("elements.badgeNeedsSheet", "Needs a loaded sprite sheet")
+        : t(
+            "elements.badgeInvalidReference",
+            "Has an invalid sprite reference",
+          ),
     );
     toggle.appendChild(badge);
   }
@@ -181,7 +188,10 @@ function buildEntries(
   if (section.entries.length === 0) {
     const empty = document.createElement("p");
     empty.className = "elements-editor__empty";
-    empty.textContent = "This element has no properties.";
+    empty.textContent = t(
+      "elements.noProperties",
+      "This element has no properties.",
+    );
     entriesEl.appendChild(empty);
     return;
   }
@@ -208,8 +218,10 @@ function buildEntries(
           noSheetPromptShown = true;
           const prompt = document.createElement("p");
           prompt.className = "elements-editor__sprite-prompt";
-          prompt.textContent =
-            "Load a sprite sheet to assign sprites to this element.";
+          prompt.textContent = t(
+            "elements.spritePrompt",
+            "Load a sprite sheet to assign sprites to this element.",
+          );
           entriesEl.appendChild(prompt);
         }
       } else {
@@ -255,7 +267,8 @@ function buildTextField(
 function buildReadOnlyValue(row: HTMLElement, value: string): void {
   const readOnly = document.createElement("span");
   readOnly.className = "elements-editor__entry-readonly";
-  readOnly.textContent = value === "" ? "(unset)" : value;
+  readOnly.textContent =
+    value === "" ? t("elements.unsetValue", "(unset)") : value;
   row.appendChild(readOnly);
 }
 
@@ -275,7 +288,15 @@ function buildSpritePicker(
   const placeholder = document.createElement("option");
   placeholder.value = UNSET_OPTION_VALUE;
   placeholder.textContent =
-    status.kind === "invalid" ? `Invalid reference: ${rawValue}` : "— none —";
+    status.kind === "invalid"
+      ? t(
+          "elements.invalidReferencePlaceholder",
+          "Invalid reference: {{value}}",
+          {
+            value: rawValue,
+          },
+        )
+      : t("elements.noneOption", "— none —");
   select.appendChild(placeholder);
 
   for (const group of spriteGroups) {
@@ -283,7 +304,16 @@ function buildSpritePicker(
       const option = document.createElement("option");
       const optionValue = `${sprite.group},${sprite.image}`;
       option.value = optionValue;
-      option.textContent = `${sprite.group}, ${sprite.image} (${sprite.width}×${sprite.height})`;
+      option.textContent = t(
+        "elements.spriteOptionLabel",
+        "{{group}}, {{image}} ({{width}}×{{height}})",
+        {
+          group: String(sprite.group),
+          image: String(sprite.image),
+          width: String(sprite.width),
+          height: String(sprite.height),
+        },
+      );
       select.appendChild(option);
     }
   }
@@ -302,7 +332,11 @@ function buildSpritePicker(
   if (status.kind === "invalid") {
     errorEl = document.createElement("span");
     errorEl.className = "elements-editor__sprite-error";
-    errorEl.textContent = `"${rawValue}" does not match any sprite in the loaded sheet.`;
+    errorEl.textContent = t(
+      "elements.spriteMismatch",
+      '"{{value}}" does not match any sprite in the loaded sheet.',
+      { value: rawValue },
+    );
     row.appendChild(errorEl);
   }
 

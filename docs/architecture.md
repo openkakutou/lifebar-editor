@@ -28,7 +28,13 @@ flowchart LR
     wizard --> document
     document --> webUiKit["web-ui-kit's\nCommandStack"]
     shortcuts --> webUiKit2["web-ui-kit's\nShortcutManager"]
+    app --> i18n["i18n\n(src/i18n/)"]
+    i18n --> webUiKit3["web-ui-kit's\ni18next integration"]
 ```
+
+(`input`, `editor`, `wizard`, and `viewer` also call into `i18n` directly for
+their own text, omitted above to keep the diagram readable — see "Data flow:
+localization" below.)
 
 (`editor`'s save/export screen is what exercises the `editor --> lifebar`
 edge in the write direction — `lifebar.serializeLifebar`, not just
@@ -139,6 +145,15 @@ edge in the write direction — `lifebar.serializeLifebar`, not just
   live binding. See
   `.vibe/decisions/008-remappable-shortcuts-scope-input-guard-and-discoverability.md`
   and "Data flow: keyboard shortcuts" below.
+- **`i18n`** (`src/i18n/`, item 009) — this app's localization setup:
+  `i18n.ts` wires `web-ui-kit`'s shared i18next integration layer
+  (`initI18n`) under this app's own namespace and `localStorage` key, plus a
+  `t(key, defaultValue, vars?)` wrapper that returns the interpolated
+  `defaultValue` verbatim before `initAppI18n` has resolved, so most of the
+  existing test suite never needs to bootstrap i18n at all. `en.json` and
+  `fr.json` hold this app's own message catalogs. See
+  `.vibe/decisions/009-i18n-integration-approach.md` and "Data flow:
+  localization" below.
 
 ## Data model
 
@@ -347,3 +362,32 @@ extended to also carry the entry's previous value.
    buttons' label subscriptions, and the shortcuts panel's own manager
    reference before building a new one — the manager singleton outlives any
    one render, so nothing unsubscribed here would otherwise leak.
+
+## Data flow: localization
+
+1. `main.ts`'s real bootstrap (`mount()`) awaits `i18n.initAppI18n()` before
+   the very first `renderApp` call, so the first paint already has the right
+   language — `renderApp` itself stays synchronous, so tests can keep
+   calling it directly with deterministic English defaults.
+2. A `<wuik-locale-switcher>` in the toolbar lists every supported locale and
+   calls the active i18next instance's own `changeLanguage()` when the user
+   picks a different one — this instance persists the choice to
+   `localStorage` under this app's own key (not `web-ui-kit`'s shared
+   default, since every OpenKakutou app shares one GitHub Pages origin).
+3. Every module builds its own text via `i18n.t(key, defaultValue, vars?)`.
+   How each module keeps that text live across a later language switch
+   depends on how much state a full re-render would otherwise destroy — see
+   `.vibe/decisions/009-i18n-integration-approach.md`:
+   - `editor`'s elements editor and `wizard` hold no locale-sensitive state
+     of their own — `main.ts`'s own `onLocaleChange` subscription just
+     re-invokes their existing render calls.
+   - `input`'s two file inputs, `viewer`'s sprite browser, and `editor`'s
+     save/export status each hold session-important state a full re-render
+     would destroy (an already-loaded file's status, an already-decoded
+     sprite sheet's thumbnails, a pending export warning) — each subscribes
+     to `onLocaleChange` once, internally, re-formatting only its own
+     already-shown text in place from a small stored status descriptor,
+     never re-reading, re-parsing, or re-decoding anything.
+   - The Undo/Redo and Save/Export buttons' shortcut-hint tooltips are
+     recomputed directly by `main.ts`, the only place holding both the
+     translated label and `shortcuts`' own live key binding.

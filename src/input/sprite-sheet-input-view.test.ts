@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { initAppI18n } from "../i18n/i18n.ts";
 import { renderSpriteSheetInput } from "./sprite-sheet-input-view.ts";
 
 function makeFile(name: string, contents = "x"): File {
@@ -208,5 +209,46 @@ describe("renderSpriteSheetInput", () => {
 
     expect(status(root).textContent).toContain("second.sff");
     expect(root.querySelectorAll(".sprite-browser")).toHaveLength(1);
+  });
+
+  describe("live locale switching (backlog item 009)", () => {
+    afterEach(async () => {
+      window.localStorage.clear();
+    });
+
+    it("re-translates an already-shown success status in place, without re-decoding", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const onLoaded = vi.fn();
+      const root = document.createElement("div");
+      const spriteGroups = [{ index: 0, sprites: [] }];
+      renderSpriteSheetInput(root, {
+        onLoaded,
+        fileOptions: {
+          readFileBytes: async () => new Uint8Array([1, 2, 3]),
+          loadSpriteSheet: async () => ({ ok: true, spriteGroups }),
+        },
+      });
+
+      const input = picker(root);
+      Object.defineProperty(input, "files", {
+        value: [makeFile("cyclops.sff")],
+        configurable: true,
+      });
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      await vi.waitFor(() => {
+        expect(status(root).textContent).toContain("cyclops.sff");
+      });
+
+      await instance.changeLanguage("fr");
+
+      await vi.waitFor(() => {
+        expect(status(root).textContent).toContain("chargé");
+      });
+      expect(status(root).textContent).toContain("cyclops.sff");
+      expect(status(root).textContent).toContain("1");
+
+      await instance.changeLanguage("en");
+    });
   });
 });

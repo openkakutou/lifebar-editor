@@ -1,5 +1,6 @@
 import { CommandStack } from "@openkakutou/web-ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
+import { initAppI18n } from "../i18n/i18n.ts";
 import { renderUndoRedoControls } from "./undo-redo-controls.ts";
 
 function controls(root: HTMLElement) {
@@ -162,5 +163,24 @@ describe("renderUndoRedoControls", () => {
 
     expect(handle.undoButton).toBe(root.querySelector('[data-action="undo"]'));
     expect(handle.redoButton).toBe(root.querySelector('[data-action="redo"]'));
+  });
+});
+
+describe("renderUndoRedoControls — localization (backlog item 009)", () => {
+  afterEach(async () => {
+    window.localStorage.clear();
+  });
+
+  it("renders the button labels translated into the active locale", async () => {
+    const instance = await initAppI18n();
+    await instance.changeLanguage("fr");
+
+    const root = document.createElement("div");
+    renderUndoRedoControls(root, { commandStack: new CommandStack() });
+
+    expect(controls(root).undo?.textContent).toBe("Annuler");
+    expect(controls(root).redo?.textContent).toBe("Rétablir");
+
+    await instance.changeLanguage("en");
   });
 });

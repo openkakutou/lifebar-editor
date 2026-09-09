@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { initAppI18n } from "../i18n/i18n.ts";
 import type { LifebarDocument } from "../lifebar/document.ts";
 import { renderLifebarFileInput } from "./lifebar-file-input-view.ts";
 
@@ -103,6 +104,61 @@ describe("renderLifebarFileInput", () => {
       expect(
         root.querySelector(".lifebar-input__status")?.textContent,
       ).toContain("good.def");
+    });
+  });
+
+  describe("live locale switching (backlog item 009)", () => {
+    afterEach(async () => {
+      window.localStorage.clear();
+    });
+
+    it("re-translates an already-shown success status in place, without re-reading the file", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const root = document.createElement("div");
+      renderLifebarFileInput(root, { onLoaded: vi.fn() });
+
+      const dropZone = root.querySelector(".lifebar-input__dropzone");
+      if (!dropZone) throw new Error("dropzone not found");
+      dispatchDrop(dropZone, [
+        fileFromText("fight.def", "[Info]\nname = Default\n"),
+      ]);
+      await vi.waitFor(() => {
+        expect(
+          root.querySelector(".lifebar-input__status")?.textContent,
+        ).toContain("fight.def");
+      });
+
+      await instance.changeLanguage("fr");
+
+      await vi.waitFor(() => {
+        const status = root.querySelector(".lifebar-input__status");
+        expect(status?.textContent).toContain("chargé");
+      });
+      const status = root.querySelector(".lifebar-input__status");
+      expect(status?.textContent).toContain("fight.def");
+      expect(status?.textContent).toContain("1");
+
+      await instance.changeLanguage("en");
+    });
+
+    it("re-translates the static label and hint text", async () => {
+      const instance = await initAppI18n();
+      await instance.changeLanguage("en");
+      const root = document.createElement("div");
+      renderLifebarFileInput(root, { onLoaded: vi.fn() });
+
+      await instance.changeLanguage("fr");
+      await vi.waitFor(() => {
+        expect(root.querySelector(".lifebar-input__label")?.textContent).toBe(
+          "Sélectionnez le fichier de barre de vie (par ex. fight.def)",
+        );
+      });
+      expect(root.querySelector(".lifebar-input__hint")?.textContent).toBe(
+        "…ou glissez-déposez-le ici",
+      );
+
+      await instance.changeLanguage("en");
     });
   });
 });
