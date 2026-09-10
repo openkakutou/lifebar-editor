@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The version number shown in the app now always matches the published release, so it can no longer silently drift out of sync and show a stale number.
+
 ## [0.10.0] - 2026-09-09
 
 ### Added
