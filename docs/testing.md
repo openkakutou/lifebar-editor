@@ -34,7 +34,7 @@ suite, or these tests fail on a missing file rather than silently skip.
 ## jsdom gaps worked around in tests
 
 The project's pinned `jsdom` version's `Blob` implementation is incomplete.
-`src/input/lifebar-file-input.ts` reads text via `FileReader#readAsText`,
+`src/input/lifebar-folder-input.ts` reads text via `FileReader#readAsText`,
 and `src/input/sprite-sheet-input.ts` reads bytes via
 `FileReader#readAsArrayBuffer` — neither uses `Blob#text()`/`#arrayBuffer()`,
 both of which behave identically under jsdom and in a real browser via
@@ -43,6 +43,17 @@ both of which behave identically under jsdom and in a real browser via
 Native browser objects jsdom doesn't construct in a test-friendly way (a
 drop event's `dataTransfer`) are stubbed with `Object.defineProperty` in
 tests rather than built through jsdom's own `DataTransfer`.
+
+`FileSystemEntry`/`FileSystemDirectoryReader`/`DataTransferItem.webkitGetAsEntry()`
+(used for a dropped folder, backlog item 011) are non-standard,
+Chromium-originated APIs jsdom doesn't implement at all. `folder-entries.ts`
+models only the handful of members it actually uses as small `*Like`
+interfaces, so `folder-entries.test.ts` exercises the recursive directory
+walk against plain mock objects instead of depending on jsdom to implement
+the real thing. A radio input's selection in the candidate-picker UI is
+read from a `"click"` listener rather than `"change"`, since this project's
+pinned jsdom doesn't reliably synthesize `"change"` after a dispatched
+click.
 
 `jsdom` does not implement `Element.isContentEditable` at all — it stays
 `undefined` even once the `contenteditable` attribute is set.
@@ -247,7 +258,7 @@ calls `initAppI18n` still sees the exact same English text as before this
 feature landed.
 
 Live-switching is tested per module against the specific state a naive
-full re-render would destroy: `lifebar-file-input-view.test.ts` and
+full re-render would destroy: `lifebar-folder-input-view.test.ts` and
 `sprite-sheet-input-view.test.ts` assert an already-shown success status
 re-translates without re-reading the file; `sprite-browser.test.ts` asserts
 an already-decoded thumbnail's label re-translates without a second decode

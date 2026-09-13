@@ -28,10 +28,18 @@
   },
   "input": {
     "lifebar": {
-      "label": "Sélectionnez le fichier de barre de vie (par ex. fight.def)",
-      "dropHint": "…ou glissez-déposez-le ici",
+      "folderLabel": "Sélectionnez un dossier de barre de vie (contenant son fichier .def, par ex. fight.def)",
+      "dropHint": "…ou glissez-déposez un dossier de barre de vie ici",
+      "resetButton": "Choisir un autre dossier",
+      "selectionPrompt": "Quel fichier est la barre de vie ?",
+      "candidateGroupLabel": "Fichiers de barre de vie candidats",
+      "confirmSelection": "Charger le fichier sélectionné",
       "reading": "Lecture…",
       "success": "{{fileName}} chargé — {{count}} section(s) trouvée(s).",
+      "needsSelection": "{{count}} fichiers de barre de vie possibles trouvés — choisissez lequel charger.",
+      "errorNoFilesDrop": "Impossible de lire quoi que ce soit dans le dossier déposé — votre navigateur ne prend peut-être pas en charge le glisser-déposer de dossier ici. Essayez plutôt le bouton du sélecteur de dossier.",
+      "errorNoFilesPicker": "Ce dossier est vide — choisissez un dossier contenant le fichier .def de la barre de vie.",
+      "errorNoCandidate": "Aucun fichier de barre de vie .def trouvé dans ce dossier — un fichier comme fight.def était attendu.",
       "errorRead": "Impossible de lire {{fileName}} : {{message}}",
       "errorParse": "Impossible d'analyser {{fileName}} : {{message}}"
     },

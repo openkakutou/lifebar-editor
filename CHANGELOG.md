@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Loading a lifebar now works by selecting or dropping an entire folder instead of a single file, so a distributed lifebar pack's `.def`-style file is found automatically alongside its other assets. If the folder contains more than one candidate file, you're asked which one to load; a folder with none shows a clear error. This replaces the previous single-file picker/drop zone.
+
 ## [0.11.0] - 2026-09-10
 
 ### Added

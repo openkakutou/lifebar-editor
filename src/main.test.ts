@@ -17,11 +17,18 @@ function fileFromText(name: string, text: string): File {
   return new File([text], name, { type: "text/plain" });
 }
 
-function dispatchDrop(dropZone: Element, files: File[]): void {
-  const dataTransfer = { files } as unknown as DataTransfer;
-  const event = new Event("drop", { bubbles: true, cancelable: true });
-  Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
-  dropZone.dispatchEvent(event);
+/**
+ * Selects a single lifebar file via the folder input's own
+ * `<input webkitdirectory>` picker (backlog item 011) -- its dropzone reads
+ * `dataTransfer.items`/`webkitGetAsEntry()`, not `dataTransfer.files`, so a
+ * plain files-based drop dispatch doesn't apply here; the picker path
+ * exercises the same auto-load behavior more directly.
+ */
+function selectLifebarFolderFile(root: HTMLElement, file: File): void {
+  const picker = root.querySelector<HTMLInputElement>("#lifebar-folder-picker");
+  if (!picker) throw new Error("lifebar folder picker not found");
+  Object.defineProperty(picker, "files", { value: [file], configurable: true });
+  picker.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
 describe("renderApp", () => {
@@ -126,18 +133,19 @@ describe("renderApp", () => {
 
     renderApp(root, "0.1.0", { designTokensLoaded: () => true });
 
-    expect(root.querySelector(".lifebar-input__dropzone")).not.toBeNull();
+    expect(
+      root.querySelector(".lifebar-folder-input__dropzone"),
+    ).not.toBeNull();
   });
 
   it("stores the loaded lifebar document in memory once a file parses successfully", async () => {
     const root = document.createElement("div");
     renderApp(root, "0.1.0", { designTokensLoaded: () => true });
 
-    const dropZone = root.querySelector(".lifebar-input__dropzone");
-    if (!dropZone) throw new Error("dropzone not found");
-    dispatchDrop(dropZone, [
+    selectLifebarFolderFile(
+      root,
       fileFromText("fight.def", "[Info]\nname = Default\n"),
-    ]);
+    );
 
     await vi.waitFor(() => {
       expect(getLifebarDocument()).not.toBeNull();
@@ -151,11 +159,10 @@ describe("renderApp", () => {
     const root = document.createElement("div");
     renderApp(root, "0.1.0", { designTokensLoaded: () => true });
 
-    const dropZone = root.querySelector(".lifebar-input__dropzone");
-    if (!dropZone) throw new Error("dropzone not found");
-    dispatchDrop(dropZone, [
+    selectLifebarFolderFile(
+      root,
       fileFromText("fight.def", "[Info]\nname = Default\n"),
-    ]);
+    );
 
     await vi.waitFor(() => {
       expect(
@@ -662,11 +669,10 @@ describe("renderApp — localization (backlog item 009)", () => {
       const root = document.createElement("div");
       renderApp(root, "0.1.0", { designTokensLoaded: () => true });
 
-      const dropZone = root.querySelector(".lifebar-input__dropzone");
-      if (!dropZone) throw new Error("dropzone not found");
-      dispatchDrop(dropZone, [
+      selectLifebarFolderFile(
+        root,
         fileFromText("fight.def", "[Info]\nname = Default\n"),
-      ]);
+      );
 
       await vi.waitFor(() => {
         expect(

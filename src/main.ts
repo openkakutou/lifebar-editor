@@ -17,7 +17,7 @@ import { renderElementsEditor } from "./editor/elements-editor.ts";
 import { renderSaveExport } from "./editor/save-export.ts";
 import { renderUndoRedoControls } from "./editor/undo-redo-controls.ts";
 import { getI18n, initAppI18n, onLocaleChange, t } from "./i18n/i18n.ts";
-import { renderLifebarFileInput } from "./input/lifebar-file-input-view.ts";
+import { renderLifebarFolderInput } from "./input/lifebar-folder-input-view.ts";
 import { renderSpriteSheetInput } from "./input/sprite-sheet-input-view.ts";
 import { appShortcutManager } from "./shortcuts/app-shortcut-manager.ts";
 import { handleAppShortcutKeydown } from "./shortcuts/app-shortcuts.ts";
@@ -103,8 +103,9 @@ export interface RenderAppOptions {
 /**
  * Builds the app's root frame — a `web-ui-kit` `<wuik-app-shell>` with the
  * app title as a single `<h1>` and the version as separate secondary text
- * in the toolbar, plus the lifebar file input (backlog item 002) and the
- * sprite sheet input (backlog item 003) as the main content. Once a file
+ * in the toolbar, plus the folder-based lifebar file input (backlog item
+ * 011, replacing item 002's single-file picker) and the sprite sheet input
+ * (backlog item 003) as the main content. Once a file
  * loads successfully, its parsed document is stored in the in-memory
  * `LifebarEditorDocument` (src/document/lifebar-document-store.ts) or
  * `SffSpriteSheetDocument` (src/document/sff-sprite-sheet-store.ts) —
@@ -246,7 +247,7 @@ export function renderApp(
   };
 
   const lifebarSection = document.createElement("div");
-  renderLifebarFileInput(lifebarSection, {
+  renderLifebarFolderInput(lifebarSection, {
     onLoaded: (lifebarDocument, fileName) => {
       commandStack.clear();
       setLifebarDocument({ fileName, document: lifebarDocument });

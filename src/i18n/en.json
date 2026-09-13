@@ -28,10 +28,18 @@
   },
   "input": {
     "lifebar": {
-      "label": "Select the lifebar file (e.g. fight.def)",
-      "dropHint": "…or drag and drop it here",
+      "folderLabel": "Select a lifebar folder (containing its .def-style file, e.g. fight.def)",
+      "dropHint": "…or drag and drop a lifebar folder here",
+      "resetButton": "Choose a different folder",
+      "selectionPrompt": "Which file is the lifebar?",
+      "candidateGroupLabel": "Candidate lifebar files",
+      "confirmSelection": "Load selected file",
       "reading": "Reading…",
       "success": "Loaded {{fileName}} — {{count}} section(s) found.",
+      "needsSelection": "Found {{count}} possible lifebar files — pick which one to load.",
+      "errorNoFilesDrop": "Couldn't read anything from the dropped folder — your browser may not support folder drag-and-drop here. Try the folder picker button instead.",
+      "errorNoFilesPicker": "This folder is empty — pick a folder that contains the lifebar's .def-style file.",
+      "errorNoCandidate": "No .def-style lifebar file found in this folder — expected one like fight.def.",
       "errorRead": "Could not read {{fileName}}: {{message}}",
       "errorParse": "Could not parse {{fileName}}: {{message}}"
     },

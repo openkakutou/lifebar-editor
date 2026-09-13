@@ -64,15 +64,23 @@ edge in the write direction — `lifebar.serializeLifebar`, not just
   `OpenKakutouSff` global — the same loading strategy
   `character-viewer-web` already established for its own `character` WASM
   dependency.
-- **`input`** (`src/input/`) — two independent single-file inputs, same
-  single-slot, wholesale-replace interaction model (never
-  `character-editor`'s accumulating multi-slot one), since each format is
-  always exactly one file:
-  - `lifebar-file-input.ts`/`-view.ts` — reads a lifebar file as text and
-    parses it via `lifebar`.
-  - `sprite-sheet-input.ts`/`-view.ts` — reads a `.sff` file's bytes and
-    loads it via `wasm`, distinguishing three failure causes (a read
-    failure, the WASM module itself failing to start, or the module
+- **`input`** (`src/input/`) — two independent inputs, both wholesale-replace
+  on every new load (never `character-editor`'s accumulating multi-slot
+  model):
+  - `folder-entries.ts` — gathers files from a folder selection, from either
+    a `<input webkitdirectory>` picker or a dropped folder (walking
+    `FileSystemDirectoryReader` recursively), into one flat, relative-path
+    list — shared gathering logic, no domain specifics.
+  - `lifebar-folder-input.ts`/`-view.ts` — folder selection is the only way
+    to load a lifebar file (a single-file picker was removed in favor of
+    this): resolves which gathered file is the lifebar's own `.def`-style
+    file (auto-picks the sole candidate, or asks the user to choose among
+    several via a native radiogroup), reads it as text, and parses it via
+    `lifebar`.
+  - `sprite-sheet-input.ts`/`-view.ts` — a separate, single-file input
+    (unaffected by the folder-input change above): reads a `.sff` file's
+    bytes and loads it via `wasm`, distinguishing three failure causes (a
+    read failure, the WASM module itself failing to start, or the module
     reporting a malformed file) rather than one generic error — see "Data
     flow: loading a sprite sheet" below.
 - **`viewer`** (`src/viewer/sprite-browser.ts`) — renders a loaded sprite
@@ -170,16 +178,26 @@ corpus evidence yet justifies the same tolerance here).
 
 ## Data flow: loading a lifebar file
 
-1. The user picks or drops a file onto `input`'s view.
-2. `input`'s logic reads it as text (via `FileReader`, not `Blob#text()` —
+1. The user picks or drops a **folder** onto `input`'s view — the only way
+   to load a lifebar on the web build, since picking a single file never
+   grants access to its sibling files in a browser.
+2. `folder-entries.ts` gathers every file in the folder (recursively, for a
+   dropped folder) into a flat, relative-path-tagged list.
+3. `lifebar-folder-input.ts` filters that list for `.def`-suffixed
+   candidates: none found reports a distinct "no candidate" error; exactly
+   one auto-continues to step 4; more than one reports back to the view,
+   which shows a radiogroup (labeled with each candidate's relative path)
+   and waits for the user to pick one before continuing.
+4. The chosen file is read as text (via `FileReader`, not `Blob#text()` —
    the same real-browser/jsdom parity concern `character-editor`'s file
-   input documents for `Blob#arrayBuffer()`) and hands it to
+   input documents for `Blob#arrayBuffer()`) and handed to
    `lifebar.parseLifebar`.
-3. `input`'s view reports success (with the section count) or a typed
-   failure (an unreadable file, or the parser's own line-numbered error)
-   back to the caller — never a thrown exception at any layer.
-4. On success, `app` stores the parsed document and file name into
-   `document`'s in-memory store. Loading a different file later repeats
+5. `input`'s view reports success (with the section count) or a typed
+   failure (no candidate found, an unreadable file, or the parser's own
+   line-numbered error) back to the caller — never a thrown exception at
+   any layer.
+6. On success, `app` stores the parsed document and file name into
+   `document`'s in-memory store. Loading a different folder later repeats
    this from step 1 and fully replaces the previous document — there is no
    accumulation across multiple files.
 

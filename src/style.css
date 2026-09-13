@@ -78,21 +78,23 @@ body {
 }
 
 /*
- * Lifebar file input (backlog item 002) — a single-file drop zone/picker,
- * unlike character-editor's multi-slot accumulating input. Error text uses
+ * Lifebar folder input (backlog item 011, replacing item 002's single-file
+ * picker/drop zone outright — .vibe/decisions/010) — a folder drop zone/
+ * picker, plus a candidate-selection radiogroup shown only when a folder
+ * yields more than one `.def`-style file. Error text uses
  * `--wuik-color-text`, not `--wuik-color-danger` — mirrors the org-wide
  * convention (see `web-ui-kit`'s own
  * .vibe/decisions/009-error-text-uses-text-token-not-danger.md); the
  * invalid state still signals non-verbally via a danger-colored border.
  */
-.lifebar-input {
+.lifebar-folder-input {
   display: flex;
   flex-direction: column;
   gap: var(--wuik-space-4);
   padding: var(--wuik-space-4);
 }
 
-.lifebar-input__dropzone {
+.lifebar-folder-input__dropzone {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -102,32 +104,38 @@ body {
   border-radius: var(--wuik-space-2);
 }
 
-.lifebar-input__dropzone--dragging {
+.lifebar-folder-input__dropzone--dragging {
   border-color: var(--wuik-color-accent);
   background-color: var(--wuik-color-surface);
 }
 
-.lifebar-input__dropzone--loading {
+.lifebar-folder-input__dropzone--loading {
   opacity: 0.6;
 }
 
-.lifebar-input__label {
+.lifebar-folder-input__label {
   font-weight: var(--wuik-font-weight-medium);
 }
 
-.lifebar-input__hint {
+.lifebar-folder-input__hint {
   margin: 0;
   font-size: var(--wuik-font-size-sm);
   color: var(--wuik-color-text-secondary);
 }
 
-.lifebar-input__status {
+.lifebar-folder-input__selection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wuik-space-2);
+}
+
+.lifebar-folder-input__status {
   min-height: 1.2em;
   font-size: var(--wuik-font-size-sm);
   color: var(--wuik-color-text-secondary);
 }
 
-.lifebar-input__status--error {
+.lifebar-folder-input__status--error {
   padding-left: var(--wuik-space-2);
   color: var(--wuik-color-text);
   border-left: 3px solid var(--wuik-color-danger);

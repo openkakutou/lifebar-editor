@@ -25,10 +25,20 @@ The in-memory representation of the currently loaded lifebar file: the parsed do
 
 Defined in: `src/document/lifebar-document-store.ts`
 
-## LifebarParseResult / LifebarInputResult
-Discriminated-union results instead of thrown exceptions. `LifebarParseResult` is the parser's own `{status: "success", document} | {status: "error", message}`. `LifebarInputResult` wraps it one layer up, adding the file-read step: `{status: "success", fileName, document} | {status: "read-error", message} | {status: "parse-error", message}`.
+## LifebarParseResult / LifebarFolderInputResult
+Discriminated-union results instead of thrown exceptions. `LifebarParseResult` is the parser's own `{status: "success", document} | {status: "error", message}`. `LifebarFolderInputResult` (backlog item 011) wraps it, adding the folder-gathering and candidate-resolution steps ahead of the file-read step: `{status: "success", fileName, relativePath, document} | {status: "no-files"} | {status: "no-candidate"} | {status: "needs-selection", candidates: GatheredFile[]} | {status: "read-error", fileName, message} | {status: "parse-error", fileName, message}`.
 
-Defined in: `src/lifebar/parse.ts`, `src/input/lifebar-file-input.ts`
+Defined in: `src/lifebar/parse.ts`, `src/input/lifebar-folder-input.ts`
+
+## GatheredFile
+One file gathered from a folder selection or a dropped folder, plus its path relative to the folder root — the common shape both gathering entry points (`<input webkitdirectory>`'s flat `FileList`, or a recursive `FileSystemDirectoryReader` walk) normalize to.
+
+| Field | Type | Notes |
+|---|---|---|
+| file | File | |
+| relativePath | string | Forward-slash path from the picked/dropped folder's root |
+
+Defined in: `src/input/folder-entries.ts`
 
 ## Sprite / SpriteGroup
 Mirrors the `sff` WASM module's JSON contract field-for-field: sprite metadata only, never decoded pixel data.
@@ -121,7 +131,7 @@ Not one shared type — the same tagged-variant shape, defined independently in 
 
 | File | Variants |
 |---|---|
-| `src/input/lifebar-file-input-view.ts` | `{kind: "idle"} \| {kind: "reading"} \| {kind: "success", fileName, sectionCount} \| {kind: "read-error", fileName, message} \| {kind: "parse-error", fileName, message}` |
+| `src/input/lifebar-folder-input-view.ts` | `{kind: "idle"} \| {kind: "reading"} \| {kind: "success", fileName, sectionCount} \| {kind: "needsSelection", count} \| {kind: "error", result, source: "picker" \| "drop"}` — `result` is the `LifebarFolderInputResult` error variant (`no-files`/`no-candidate`/`read-error`/`parse-error`), re-formatted per variant and per drop-vs-picker source |
 | `src/input/sprite-sheet-input-view.ts` | Same shape, plus `{kind: "setup-error", fileName, message}` (a WASM-startup failure) and `groupCount` instead of `sectionCount` |
 | `src/editor/save-export.ts` | `{kind: "idle"} \| {kind: "problems", problems: ExportProblem[]} \| {kind: "saved", fileName}` — `problems`' own `message` text was already translated at the moment `findExportProblems` produced it, so re-formatting here re-joins those same strings rather than re-translating them |
 
