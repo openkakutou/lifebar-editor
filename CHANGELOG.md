@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A visual-regression test suite now catches accidental changes to how the sprite sheet browser's decoded thumbnails and the elements editor's sprite-assignment picker actually render, checked automatically via `npm run test:visual`, in its own CI check separate from the regular test suite.
+
 ## [0.12.0] - 2026-09-14
 
 ### Added

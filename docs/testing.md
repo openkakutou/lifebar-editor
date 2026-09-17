@@ -283,3 +283,48 @@ translated too, expanded a section and confirmed it stayed expanded across
 a switch back to English, then performed a real full page reload after
 switching to French and confirmed the language persisted — zero console
 errors.
+
+## Visual regression: real Playwright screenshots, checked in CI (backlog item 013)
+
+`npm test` (Vitest) never looks at a rendered pixel. `npm run test:visual`
+(`playwright.config.ts`, specs under `tests/visual/`) is a separate suite
+that does, covering this app's two real rendered surfaces — the sprite
+sheet browser's decoded thumbnails, and the elements editor's picker after
+assigning a real sprite to a `.spr`-suffixed entry — the regression class
+no unit test or WASM-bridge test can catch, per the org-wide rationale in
+roadmap's `.vibe/decisions/024-visual-regression-testing-via-playwright-screenshots.md`.
+
+- Extends `web-ui-kit`'s shared Playwright preset
+  (`@openkakutou/web-ui-kit/testing/visual-preset`): fixed viewport, forced
+  animations/fonts settled, the shared diff threshold.
+- The lifebar fixture (`tests/visual/fixtures/lifebar-pack/fight.def`) is a
+  small, purpose-authored `.def` with one initially-unset `.spr` entry,
+  uploaded through the app's real folder picker. The sprite sheet is this
+  repo's own existing real fixture (`src/wasm/testdata/v1-basic.sff`,
+  already used by `wasm/bridge.test.ts`), pointed at directly rather than
+  duplicated — the two files don't need to live in the same folder, since
+  this app's lifebar folder input and sprite-sheet input are separate,
+  unrelated controls. See
+  `.vibe/decisions/012-visual-regression-fixture-reuses-existing-sff-directly.md`.
+- The app is served via the plain `vite` dev server (`webServer` in
+  `playwright.config.ts`), not a build + `vite preview` — see
+  `.vibe/decisions/011-visual-regression-served-via-vite-dev-not-build-preview.md`.
+- Two baselines: the sprite browser's decoded thumbnail grid after
+  expanding a group (waiting for every skeleton placeholder to be replaced
+  by a real decoded canvas — the batch decode is async and otherwise
+  unobservable from the DOM alone), and the elements editor's section
+  after assigning the real sprite to its previously-unset `.spr` entry
+  through the picker.
+- Runs in CI (`.github/workflows/deploy-pages.yml`) as its own `visual`
+  job, separate from the fast `build` job's `Test`/`Lint`/`Build` steps, so
+  Playwright's Chromium download/cache never slows that feedback loop.
+  `deploy` only runs once both `build` and `visual` pass — a real
+  rendering regression blocks publishing the same way a failing unit test
+  already does.
+- A failing diff uploads `test-results/` (actual/expected/diff images) as
+  a CI artifact. Updating a baseline is always its own deliberate
+  `--update-snapshots` commit, reviewed like any other change.
+
+```sh
+npm run test:visual
+```
