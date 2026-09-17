@@ -1,9 +1,7 @@
 ---
-status: running
+status: idle
 started: 2026-09-18T00:00
 limit: 1
-current: 013
-attempt: 1
 ---
 # Auto run journal
 
@@ -23,3 +21,4 @@ attempt: 1
 - 011 — feature — done (d44cad5)
 
 ## 2026-09-18T00:00 — run started (limit: 1)
+- 013 — feature — done (791a0d4)
