@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The lifebar editor is now also available as a standalone desktop app for Windows, Mac and Linux, which opens and saves lifebar `.def` files on your computer; the web version is unchanged.
+
 ## [0.13.0] - 2026-09-18
 
 ### Added

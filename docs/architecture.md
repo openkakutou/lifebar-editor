@@ -163,6 +163,29 @@ edge in the write direction — `lifebar.serializeLifebar`, not just
   `.vibe/decisions/009-i18n-integration-approach.md` and "Data flow:
   localization" below.
 
+## Desktop build (`desktop/`)
+
+A native Fyne app for Windows, Mac and Linux lives in `desktop/`, a separate
+Go module that does not share code with the TypeScript web build. It has
+three layers:
+
+- `desktop/internal/lifebar` — a Go port of the TypeScript parser and
+  serializer (`src/lifebar/`), with the same ordered-array data model and
+  line-numbered parse errors. It has no GUI dependency and is fully tested.
+- `desktop/internal/session` — one open `.def` file: its text, validated on
+  every edit, dirty tracking, and an atomic save through a temp file. No GUI
+  dependency.
+- `desktop/internal/ui` — the Fyne window: Open (button and Ctrl/Cmd+O), a
+  multi-line text area, Save (button and Ctrl/Cmd+S, enabled only for valid,
+  unsaved edits), and a status line.
+
+`desktop/main.go` wires the window to the UI. Because the Go parser is a port,
+any change to the TypeScript parser must be mirrored in
+`desktop/internal/lifebar` (see `.vibe/decisions/013-desktop-go-lifebar-parser-port.md`).
+The root package needs GL and windowing headers to compile, so on a machine
+without them run `go test ./internal/...` in `desktop/`. CI builds and attaches the
+desktop app per OS (`.github/workflows/desktop.yml`).
+
 ## Data model
 
 Sections and their entries are stored as **ordered arrays**, never a

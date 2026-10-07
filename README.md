@@ -5,6 +5,7 @@ A read+write editor for a [OpenKakutou](https://github.com/openkakutou) (MUGEN/I
 <!-- vibe:begin:features -->
 This project is in early-stage development. Available now:
 
+- A standalone desktop app for Windows, Mac and Linux that opens a lifebar `.def` file from your computer, shows its text, and saves your edits back. The web version is unchanged.
 - A themed app shell, built on the shared OpenKakutou design system, with a light/dark-aware layout.
 - Load a lifebar to edit by selecting or dragging in the folder that contains it — MUGEN and Ikemen GO-specific files alike, with unrecognized Ikemen extensions preserved rather than dropped. If the folder holds more than one candidate file, you're asked which one to load. A malformed file, or a folder with no matching file, shows a clear error instead of crashing.
 - Load a `.sff` sprite sheet and browse its sprites as thumbnails, grouped the way the file organizes them, in preparation for assigning them to lifebar elements. A missing sprite sheet WASM build or a corrupt file shows a clear, specific error instead of failing silently.
@@ -40,6 +41,15 @@ Download a specific version of the `sff` library's WebAssembly build (needed to 
 ```sh
 npm run wasm:download -- v0.3.1
 ```
+
+Desktop app: download the archive for your system from the latest release, then unzip it and run `lifebar-editor`:
+
+- Windows: [lifebar-editor-windows-amd64.zip](https://github.com/openkakutou/lifebar-editor/releases/latest/download/lifebar-editor-windows-amd64.zip)
+- Mac (Apple silicon): [lifebar-editor-macos-arm64.zip](https://github.com/openkakutou/lifebar-editor/releases/latest/download/lifebar-editor-macos-arm64.zip)
+- Mac (Intel): [lifebar-editor-macos-amd64.zip](https://github.com/openkakutou/lifebar-editor/releases/latest/download/lifebar-editor-macos-amd64.zip)
+- Linux: [lifebar-editor-linux-amd64.tar.gz](https://github.com/openkakutou/lifebar-editor/releases/latest/download/lifebar-editor-linux-amd64.tar.gz)
+
+The desktop builds are not code-signed yet. macOS may block the first launch; open it from the Finder's right-click menu, or allow it in System Settings under Privacy & Security. Windows SmartScreen may show a warning; choose "More info", then "Run anyway".
 <!-- vibe:end:install -->
 
 <!-- vibe:begin:usage -->
@@ -77,6 +87,13 @@ Run the visual-regression suite (compares real rendered screenshots against comm
 
 ```sh
 npm run test:visual
+```
+
+Run the desktop app from source (needs Go; on Linux also the GL and X11 development packages):
+
+```sh
+cd desktop
+go run .
 ```
 <!-- vibe:end:usage -->
 

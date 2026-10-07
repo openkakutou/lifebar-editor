@@ -1,0 +1,18 @@
+; Purpose-authored fixture for the visual-regression suite
+; (tests/visual/editor-surfaces.visual.spec.ts) -- not a real community
+; pack. Lives in its own folder (lifebar-pack/) because the app's folder
+; picker only ever reads a lifebar's own .def-style file -- the sprite
+; sheet is a separate, unrelated single-file input pointed directly at
+; this repo's existing real fixture (src/wasm/testdata/v1-basic.sff), so
+; no .sff needs to live alongside this file. See
+; .vibe/decisions/012-visual-regression-fixture-reuses-existing-sff-directly.md.
+;
+; One section with one sprite-reference (".spr") entry, deliberately left
+; unset -- the visual spec assigns v1-basic.sff's one real sprite (group 0,
+; image 0, 57x103px) to it through the elements editor's own picker, then
+; screenshots the result.
+
+[P1 Life Bar]
+pos = 20,20
+0.spr =
+0.offset = 0,0

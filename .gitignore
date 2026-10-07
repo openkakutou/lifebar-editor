@@ -12,3 +12,6 @@ public/wasm/
 test-results/
 playwright-report/
 blob-report/
+
+# Native desktop build output (desktop/, Fyne)
+desktop/dist/

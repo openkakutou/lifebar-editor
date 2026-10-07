@@ -12,6 +12,12 @@ npm run test:watch   # watch mode
 Vitest, `jsdom` environment. Test files are co-located with the source they
 test (`*.test.ts` next to the file it covers).
 
+The desktop app has its own Go tests in `desktop/`, run separately with
+`go test ./internal/...` (see `docs/architecture.md`, "Desktop build"). They
+cover the Go lifebar parser and serializer, the open/save session, and the
+Fyne editor window through Fyne's headless test driver. Tests that depend on
+Unix file permissions skip on Windows.
+
 ## Parser tests are pure and fixture-free
 
 `src/lifebar/parse.test.ts` exercises `parseLifebar` directly against
