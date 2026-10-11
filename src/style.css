@@ -26,7 +26,7 @@ body {
 
 .app-version {
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 /*
@@ -82,7 +82,7 @@ body {
  * picker/drop zone outright — .vibe/decisions/010) — a folder drop zone/
  * picker, plus a candidate-selection radiogroup shown only when a folder
  * yields more than one `.def`-style file. Error text uses
- * `--wuik-color-text`, not `--wuik-color-danger` — mirrors the org-wide
+ * `--wuik-color-text`, not `--wuik-color-error` — mirrors the org-wide
  * convention (see `web-ui-kit`'s own
  * .vibe/decisions/009-error-text-uses-text-token-not-danger.md); the
  * invalid state still signals non-verbally via a danger-colored border.
@@ -105,7 +105,7 @@ body {
 }
 
 .lifebar-folder-input__dropzone--dragging {
-  border-color: var(--wuik-color-accent);
+  border-color: var(--wuik-color-primary);
   background-color: var(--wuik-color-surface);
 }
 
@@ -120,7 +120,7 @@ body {
 .lifebar-folder-input__hint {
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .lifebar-folder-input__selection {
@@ -132,13 +132,13 @@ body {
 .lifebar-folder-input__status {
   min-height: 1.2em;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .lifebar-folder-input__status--error {
   padding-left: var(--wuik-space-2);
   color: var(--wuik-color-text);
-  border-left: 3px solid var(--wuik-color-danger);
+  border-left: 3px solid var(--wuik-color-error);
 }
 
 /*
@@ -164,7 +164,7 @@ body {
 }
 
 .sprite-sheet-input__dropzone--dragging {
-  border-color: var(--wuik-color-accent);
+  border-color: var(--wuik-color-primary);
   background-color: var(--wuik-color-surface);
 }
 
@@ -179,19 +179,19 @@ body {
 .sprite-sheet-input__hint {
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .sprite-sheet-input__status {
   min-height: 1.2em;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .sprite-sheet-input__status--error {
   padding-left: var(--wuik-space-2);
   color: var(--wuik-color-text);
-  border-left: 3px solid var(--wuik-color-danger);
+  border-left: 3px solid var(--wuik-color-error);
 }
 
 /*
@@ -260,7 +260,7 @@ body {
 
 .sprite-browser__thumb-label {
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
   text-align: center;
 }
 
@@ -272,7 +272,7 @@ body {
   height: 64px;
   font-size: var(--wuik-font-size-sm);
   color: var(--wuik-color-text);
-  border: 1px solid var(--wuik-color-danger);
+  border: 1px solid var(--wuik-color-error);
   border-radius: var(--wuik-space-1);
   text-align: center;
   overflow: hidden;
@@ -310,7 +310,7 @@ body {
   padding: 0 var(--wuik-space-1);
   font-size: var(--wuik-font-size-sm);
   color: var(--wuik-color-bg);
-  background: var(--wuik-color-danger);
+  background: var(--wuik-color-error);
   border-radius: 999px;
 }
 
@@ -342,7 +342,7 @@ body {
 .elements-editor__entry-key {
   min-width: 10ch;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .elements-editor__entry-input,
@@ -357,23 +357,23 @@ body {
 }
 
 .elements-editor__entry-readonly {
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .elements-editor__sprite-prompt {
   width: 100%;
   margin: 0;
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 .elements-editor__sprite-error {
   font-size: var(--wuik-font-size-sm);
-  color: var(--wuik-color-danger);
+  color: var(--wuik-color-error);
 }
 
 .elements-editor__empty {
-  color: var(--wuik-color-text-secondary);
+  color: var(--wuik-color-text-muted);
 }
 
 /*
