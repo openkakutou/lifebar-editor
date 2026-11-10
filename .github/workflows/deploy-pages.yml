@@ -42,7 +42,7 @@ jobs:
       # — see this repo's own CLAUDE.md ("Own lifebar parser, sff WASM
       # dependency") for where this pin lives.
       - name: Download sff WASM release
-        run: npm run wasm:download -- v0.4.0
+        run: npm run wasm:download -- v0.5.0
 
       - name: Test
         run: npm test
@@ -87,7 +87,7 @@ jobs:
       # same reason: both visual surfaces this suite screenshots decode a
       # real sprite through the same real WASM build at runtime.
       - name: Download sff WASM release
-        run: npm run wasm:download -- v0.4.0
+        run: npm run wasm:download -- v0.5.0
 
       # Keyed on the pinned @playwright/test version (package-lock.json) so
       # a version bump busts the cache instead of silently reusing a
