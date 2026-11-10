@@ -39,7 +39,7 @@ npm update
 Download a specific version of the `sff` library's WebAssembly build (needed to browse a sprite sheet):
 
 ```sh
-npm run wasm:download -- v0.3.1
+npm run wasm:download -- v0.4.0
 ```
 
 Desktop app: download the archive for your system from the latest release, then unzip it and run `lifebar-editor`:
